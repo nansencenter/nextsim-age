@@ -8,7 +8,7 @@ from pynextsim.nextsim_bin import NextsimBin
 from pynextsim.file_list import FileList
 
 #-------------------------------------------------------------------
-inpath = '/input_obs_data/FRASIL/run01_part3/nextsim_outputs/'
+#inpath = '/input_obs_data/FRASIL/run01_part3/nextsim_outputs/'
 
 ##to get all the files in one folder creat symbolic links as sim data user (symlinks dont realyl work accross the users!)
 #ulimit -s 65536
@@ -16,7 +16,7 @@ inpath = '/input_obs_data/FRASIL/run01_part3/nextsim_outputs/'
 #cd data/run01
 #ln -s /input_obs_data/FRASIL/run01_part1/nextsim_outputs/* .   #and same for all the other parts
 
-#inpath = '/home/sim/nextsim_age/data/run01/'
+inpath = '/home/sim/nextsim_age/data/run01/'
 
 #fl = sorted(glob(inpath+'*.bin'))
 #print(fl)
@@ -63,23 +63,29 @@ for nb, fn, date in zip(f.objects, f.filelist, f.datetimes):
     aoy = ao/60/60/24/365
     #aoy = aoy.astype(int)
     
+    #print(aoy)
+    #exit()
+    
+    
     #1st year ice area
-    mask = aoy>1
-    aoy0 = np.sum(np.ma.array(aoy,mask=mask)*ea*ic)
+    mask = aoy>1.0
+    aoy0 = np.sum(np.ma.array(ic,mask=mask)*ea)
     
     #2nd year ice area
-    mask = (aoy<1) & (aoy>2)
-    aoy1 = np.sum(np.ma.array(aoy,mask=mask)*ea*ic)
+    mask = (aoy<=1.0) | (aoy>2.0)
+    aoy1 = np.sum(np.ma.array(ic,mask=mask)*ea)
     
     #MYI area
-    mask = (aoy<2) & (aoy>3)
-    aoy2 = np.sum(np.ma.array(aoy,mask=mask)*ea*ic)
+    mask = (aoy<=2.0) | (aoy>3.0)
+    aoy2 = np.sum(np.ma.array(ic,mask=mask)*ea)
     
-    mask = aoy<4
-    aoy3 = np.sum(np.ma.array(aoy,mask=mask)*ea*ic)
+    mask = aoy<=3.0
+    aoy3 = np.sum(np.ma.array(ic,mask=mask)*ea)
     
-    
+    #print(area)
     #print(aoy0)
+    #print(aoy1)
+    #print(aoy2)
     #print(aoy3)
     #exit()
     
@@ -101,37 +107,54 @@ np.save('myi_vol',np.array(myi_vol_list))
 np.save('vol',np.array(vol_list))
 np.save('area',np.array(area_list))
 np.save('aoy0',np.array(aoy0_list))
-np.save('aoy1',np.array(aoy0_list))
-np.save('aoy2',np.array(aoy0_list))
-np.save('aoy3',np.array(aoy0_list))
+np.save('aoy1',np.array(aoy1_list))
+np.save('aoy2',np.array(aoy2_list))
+np.save('aoy3',np.array(aoy3_list))
 
 dates = np.load('dates.npy')
-myi_area = np.load('myi_area.npy')
-myi_vol = np.load('myi_vol.npy')
-vol = np.load('vol.npy')
-area = np.load('area.npy')
+myi_area = np.load('myi_area.npy')/1e9 #10^3 km^2
+myi_vol = np.load('myi_vol.npy')/1e9 # km^3
+vol = np.load('vol.npy')/1e9 # km^3
+area = np.load('area.npy')/1e9 #10^3 km^2
 
-aoy0 = np.load('aoy0.npy')
-aoy1 = np.load('aoy1.npy')
-aoy2 = np.load('aoy2.npy')
-aoy3 = np.load('aoy3.npy')
+aoy0 = np.load('aoy0.npy')/1e9 #10^3 km^2
+aoy1 = np.load('aoy1.npy')/1e9
+aoy2 = np.load('aoy2.npy')/1e9
+aoy3 = np.load('aoy3.npy')/1e9
+
+#load OSI-SAF sea ice type data
+
+
 
 #import to pandas and plot
-df2 = pd.DataFrame({ 'MYI area' : myi_area,
+df = pd.DataFrame({ 'MYI area' : myi_area,
                      'MYI volume' : myi_vol,
                      'total volume' : vol,
                      'total area' : area,
-                     'FYI area' : aoy0,
-                     'SYI area' : aoy1,
-                     'TYI area' : aoy2,
-                     'MYI area' : aoy3}, index=dates)
+                     'YI area' : aoy0,
+                     'FYI area' : aoy1,
+                     'SYI area' : aoy2,
+                     'MYI+ area' : aoy3}, index=dates)
 
-#make winter averages
+#make winter (January) averages
+dfmon = df.resample('M').mean()
+#print(dfmon.index.month)
+#print(dfmon['2008'])
+dfjan = dfmon.loc[dfmon.index.month==1]
+print(dfjan)
+
+#dfmon.loc[(dfmon[index=])]
 
 
-fig = df2.plot().get_figure()
-fig.savefig('test1.png')
+fig1 = df.iloc[:, 4:].plot.area().get_figure()
+fig1.savefig('test1.png')
 
 
+##fig2 = df.iloc[:, 0].plot().get_figure()
+##fig2.savefig('test.png')
+
+
+#fig3 = dfjan.iloc[:, 0].plot().get_figure()
+#fig3.savefig('test2.png')
 
 

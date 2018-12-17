@@ -5,9 +5,9 @@ import os
 
 ftp = FTP('osisaf.met.no')
 ftp.login('anonymous','polona.itkin@nersc.no')
-ftp.cwd('archive/ice/conc/2008/01/')
+ftp.cwd('archive/ice/conc/2018/01/')
 #os.chdir('../data/OSI-SAF/icecon')
-os.chdir('/input_obs_data/OSISAF_ice_conc/polstere/2008_nh_polstere/')
+os.chdir('/input_obs_data/OSISAF_ice_conc/polstere/2018_nh_polstere/')
 filenames = ftp.nlst() # get filenames within the directory
 #print filenames
 

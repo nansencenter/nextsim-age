@@ -19,20 +19,18 @@ outpath_plots = 'plots/'
 
 
 #make the list of all files
-fl = sorted(glob(inpath+'OSISAF_ice_type/**/01/ice_type_nh_polstere-100_multi_*01011200.nc', recursive=True))
+fl = sorted(glob(inpath+'OSISAF_ice_type/**/01/ice_type_nh_polstere-100_multi_*1200.nc', recursive=True))
 print(fl)
-
-#sea ice concentration files
-fl_conc = sorted(glob(inpath+'OSISAF_ice_conc/**/ice_conc_nh_polstere-100_multi_*01011200.nc', recursive=True))
-print(fl_conc)
-
 
 date_list = []
 fyi_list = []
 myi_list = []
 oi_list = []
 
-
+#get the land and NP-hole mask (north pole hole got smaller over time!!!)
+f = Dataset(fl[0])
+sf = f.variables['status_flag'][:]
+landmask = sf==0
 
 for i in range(0,len(fl[:])):
     f = fl[i]
@@ -46,44 +44,42 @@ for i in range(0,len(fl[:])):
     f = Dataset(f)
     itype = f.variables['ice_type'][:]
     cl = f.variables['confidence_level'][:]
-    sf = f.variables['status_flag'][:]
+    #sf = f.variables['status_flag'][:]
     
     #sea ice concentration
-    f = fl_conc[i]
+    #Attention!!! First 1. and 3. day of 2007 are missing and replaced by 2. Jan 2007!!! (files are copies)
+    #similar ice_conc_nh_polstere-100_multi_200601291200.nc is a copy of 30
+    #ice_conc_nh_polstere-100_multi_200701071200.nc is a copy of 08
+    year = str(date.year)
+    f = inpath+'OSISAF_ice_conc/polstere/'+year+'_nh_polstere/ice_conc_nh_polstere-100_multi_'+tmp+'.nc'
     print(f)
     f = Dataset(f)
     iconc = f.variables['ice_conc'][:]/100 #scale from % to fraction
     
-    #mask
-    mask=sf>20                      #this will be land mask and north pole hole
-    iconc = np.ma.array(iconc,mask=mask)
-    
+    miz = iconc<.85
+    iconc = np.ma.array(iconc,mask=miz)
+        
     ones = np.ones_like(itype)
     a = 100 #each grid box is 10x10km2
 
-    #FYI area
-    mask = itype==2
+    #FYI area (including lakes and sub-arctic seas)
+    mask = (itype==3)#&landmask
     fyi = np.sum(np.ma.array(ones,mask=~mask)*iconc)*a
 
     #MYI area
-    mask = itype==3
+    mask = (itype==3)&landmask
     myi = np.sum(np.ma.array(ones,mask=~mask)*iconc)*a
 
     #other ice area
-    mask = itype==4
+    mask = (itype==4)#&landmask
     oi = np.sum(np.ma.array(ones,mask=~mask)*iconc)*a
 
     date_list.append(date)
     fyi_list.append(fyi)
     myi_list.append(myi)
     oi_list.append(oi)
-   
-    #print(fyi)
-    #print(myi)
-    #print(oi)
-    #exit()
-    
 
+#save all the data   
 np.save('dates_osi_jan',np.array(date_list))
 np.save('fyi_osi_jan',np.array(fyi_list))
 np.save('myi_osi_jan',np.array(myi_list))
@@ -95,10 +91,6 @@ fyi = np.load('fyi_osi_jan.npy')/1e3  #10^3 km^2
 myi = np.load('myi_osi_jan.npy')/1e3
 oi = np.load('oi_osi_jan.npy')/1e3
 
-
-
-
-
 #import to pandas and plot
 df = pd.DataFrame({ 'FYI area' : fyi,
                      'MYI area' : myi,
@@ -108,15 +100,12 @@ df = pd.DataFrame({ 'FYI area' : fyi,
 #fig1.savefig('test3.png')
 
 
-
 #make winter (January) averages
 dfmon = df.resample('M').mean()
 #print(dfmon.index.month)
 #print(dfmon['2008'])
 dfjan = dfmon.loc[dfmon.index.month==1]
 print(dfjan)
-
-
 
 fig2 = dfjan.iloc[:, :].plot().get_figure()
 fig2.savefig('osi_test.png')

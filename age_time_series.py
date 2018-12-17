@@ -35,7 +35,7 @@ outpath_plots = 'plots/'
 #aoy0_list = []
 #aoy1_list = []
 #aoy2_list = []
-#aoy3_list = []
+
 
 #f = FileList(inpath)
 #for nb, fn, date in zip(f.objects[:], f.filelist[:], f.datetimes[:]):
@@ -63,7 +63,7 @@ outpath_plots = 'plots/'
     #myi_area = area - fyi_area
     
     ##MYI binary values
-    #myi = np.where((fyi<.5)&(ic>.5),1,0)
+    #myi = np.where((fyi<.3)&(ic>.5),1,0)
     #myi_area_bin = np.sum(myi*ic*ea)
 
     ###MYI volume
@@ -85,26 +85,22 @@ outpath_plots = 'plots/'
     ##print(aoy)
     ##exit()
     
-    
+    ##in January, FYI is up to 4 months old (1/3 of year)
     ##1st year ice area
-    #mask = aoy>1.0
+    #mask = aoy>.3
     #aoy0 = np.sum(np.ma.array(ic,mask=mask)*ea)
     
     ##2nd year ice area
-    #mask = (aoy<=1.0) | (aoy>2.0)
+    #mask = (aoy<=.3) | (aoy>1.3)
     #aoy1 = np.sum(np.ma.array(ic,mask=mask)*ea)
     
     ##MYI area
-    #mask = (aoy<=2.0) | (aoy>3.0)
+    #mask = aoy<=1.3
     #aoy2 = np.sum(np.ma.array(ic,mask=mask)*ea)
-    
-    #mask = aoy<=3.0
-    #aoy3 = np.sum(np.ma.array(ic,mask=mask)*ea)
-        
+            
     #aoy0_list.append(aoy0)
     #aoy1_list.append(aoy1)
     #aoy2_list.append(aoy2)
-    #aoy3_list.append(aoy3)
     
     
 
@@ -117,7 +113,6 @@ outpath_plots = 'plots/'
 #np.save('aoy0',np.array(aoy0_list))
 #np.save('aoy1',np.array(aoy1_list))
 #np.save('aoy2',np.array(aoy2_list))
-#np.save('aoy3',np.array(aoy3_list))
 
 dates = np.load('dates.npy')
 myi_area = np.load('myi_area.npy')/1e9 #10^3 km^2
@@ -129,7 +124,6 @@ area = np.load('area.npy')/1e9 #10^3 km^2
 aoy0 = np.load('aoy0.npy')/1e9 #10^3 km^2
 aoy1 = np.load('aoy1.npy')/1e9
 aoy2 = np.load('aoy2.npy')/1e9
-aoy3 = np.load('aoy3.npy')/1e9
 
 #load OSI-SAF sea ice type data
 dates_osi = np.load('data/outputs/dates_osi.npy')
@@ -163,10 +157,10 @@ print(dfjan_osi)
 #import to pandas and plot
 df = pd.DataFrame({ 'total' : area,
                     'FYI' : area - myi_area,
-                    'FYI age' : aoy0 + aoy1,
+                    'FYI age' : aoy0,
                     'MYI' : myi_area,
                     'MYI bin' : myi_area_bin,
-                    'MYI age' : aoy2 + aoy3}, index=dates)
+                    'MYI age' : aoy2}, index=dates)
 
 #make winter (January) averages
 dfmon = df.resample('M').mean()

@@ -56,22 +56,21 @@ for i in range(0,len(fl[:])):
     f = Dataset(f)
     iconc = f.variables['ice_conc'][:]/100 #scale from % to fraction
     
-    miz = iconc<.85
-    iconc = np.ma.array(iconc,mask=miz)
+    miz = iconc<.8
         
     ones = np.ones_like(itype)
     a = 100 #each grid box is 10x10km2
 
     #FYI area (including lakes and sub-arctic seas)
-    mask = (itype==3)#&landmask
+    mask = (itype==2)&landmask&~miz
     fyi = np.sum(np.ma.array(ones,mask=~mask)*iconc)*a
 
     #MYI area
-    mask = (itype==3)&landmask
+    mask = (itype==3)&landmask&~miz
     myi = np.sum(np.ma.array(ones,mask=~mask)*iconc)*a
 
     #other ice area
-    mask = (itype==4)#&landmask
+    mask = (itype==4)&landmask&~miz
     oi = np.sum(np.ma.array(ones,mask=~mask)*iconc)*a
 
     date_list.append(date)
@@ -80,16 +79,16 @@ for i in range(0,len(fl[:])):
     oi_list.append(oi)
 
 #save all the data   
-np.save('dates_osi_jan',np.array(date_list))
-np.save('fyi_osi_jan',np.array(fyi_list))
-np.save('myi_osi_jan',np.array(myi_list))
-np.save('oi_osi_jan',np.array(oi_list))
+np.save(outpath+'dates_osi_jan',np.array(date_list))
+np.save(outpath+'fyi_osi_jan',np.array(fyi_list))
+np.save(outpath+'myi_osi_jan',np.array(myi_list))
+np.save(outpath+'oi_osi_jan',np.array(oi_list))
 
 #load OSI-SAF sea ice type data
-dates = np.load('dates_osi_jan.npy')
-fyi = np.load('fyi_osi_jan.npy')/1e3  #10^3 km^2
-myi = np.load('myi_osi_jan.npy')/1e3
-oi = np.load('oi_osi_jan.npy')/1e3
+dates = np.load(outpath+'dates_osi_jan.npy')
+fyi = np.load(outpath+'fyi_osi_jan.npy')/1e3  #10^3 km^2
+myi = np.load(outpath+'myi_osi_jan.npy')/1e3
+oi = np.load(outpath+'oi_osi_jan.npy')/1e3
 
 #import to pandas and plot
 df = pd.DataFrame({ 'FYI area' : fyi,
@@ -102,12 +101,11 @@ df = pd.DataFrame({ 'FYI area' : fyi,
 
 #make winter (January) averages
 dfmon = df.resample('M').mean()
-#print(dfmon.index.month)
-#print(dfmon['2008'])
+dfmon_std = df.resample('M').std()
 dfjan = dfmon.loc[dfmon.index.month==1]
 print(dfjan)
 
-fig2 = dfjan.iloc[:, :].plot().get_figure()
+fig2 = dfmon.loc[dfmon.index.month==1].plot(yerr=dfmon_std).get_figure()
 fig2.savefig('osi_test.png')
 
 

@@ -11,12 +11,16 @@ icosi_path = '/input_obs_data/OSISAF_ice_conc/polstere/'
 tyosi_path = '/input_obs_data/OSISAF_ice_type/'
 outpath_plots = 'plots/'
 
-
 fl = sorted(glob(inpath+'field*0101T000000Z.bin'))
 print(fl)
 
-
 for f in fl:
+    tmp = f.split('_')[-1].split('T')[0]
+    date = datetime.strptime(tmp, "%Y%m%d")
+    print(date)
+    year = str(date.year)
+    if int(year)<2006: continue
+    
     #neXtSIM data
     nb = NextsimBin(f)
     ic = nb.get_var('Concentration')
@@ -25,13 +29,7 @@ for f in fl:
     
     icthick = ic-icthin
 
-    tmp = f.split('_')[-1].split('T')[0]
-    date = datetime.strptime(tmp, "%Y%m%d")
-    print(date)
-
     #OSI-SAF data
-    year = str(date.year)
-    if int(year)<2006: continue
     stamp = datetime.strftime(date, "%Y%m%d")+'1200'
     print(stamp)
     
@@ -63,17 +61,9 @@ for f in fl:
 
     #ice type difference
     myi = icthick-fyi
-    #myi = np.where(mask,0,myi)
-    #icthick = np.where(mask,0,icthick)
 
-
-    #myi_osi = np.where(it_osi==3,1,0)*ic_osi
-    #if other ice type is also MYI 
-    myi_osi = np.where(it_osi>2,1,0)*ic_osi
-
-    #try to get rid of the MIZ
-    myi_osi = np.where(it_osi>2,1,0)*np.where(ic_osi>.5,1,0)
-
+    miz = ic_osi<.5
+    myi_osi = np.where((it_osi>2)&~miz,1,0)*ic_osi
 
     it_diff = myi-myi_osi
     nb.add_var('IType difference', f, it_diff)
@@ -81,44 +71,36 @@ for f in fl:
     nb.plot_var('IType difference',cmap='bwr',figname=figname,clim=[-1,1])
 
     myi_bin = np.where((fyi<.3)&(icthick>.5),1,0)
-    #myi_bin = np.where((ic==1),1,0)
-
-    #myi_osi_bin = np.where(it_osi==3,1,0)
-    #if other ice type is also MYI 
-    myi_osi_bin = np.where(it_osi>2,1,0)*np.where(ic_osi>.5,1,0)
-
+    myi_osi_bin = np.where((it_osi>2)&~miz,1,0)
     it_diff_bin = myi_bin - myi_osi_bin
     nb.add_var('IType difference bin', f, it_diff_bin)
     figname = outpath_plots+'itbin_diff_'+year+'.png'
     nb.plot_var('IType difference bin',cmap='bwr',figname=figname,clim=[-1,1])
-
-
+    
+    #maps of snow and ridge ratio
+    figname = outpath_plots+'snow_'+year+'.png'
+    nb.plot_var('Snow',figname=figname,clim=[0,1])
+    
+    figname = outpath_plots+'ridges_'+year+'.png'
+    nb.plot_var('Ridge_ratio',figname=figname,clim=[0,1])
+    
+    #maps of ice age
+    age = nb.get_var('Age_o')
+    aoy = age/60/60/24/365
+    nb.add_var('Age_o_year', f, aoy)
+    figname = outpath_plots+'age_'+year+'.png'
+    nb.plot_var('Age_o_year',figname=figname,clim=[0,6])
+    
+    age_bin = np.where(aoy>1.33,1,0)
+    age_diff = age_bin - myi_osi_bin
+    age_diff = np.where(landmask,0,age_diff)
+    nb.add_var('Age_diff', f, age_diff)
+    figname = outpath_plots+'age_diff'+year+'.png'
+    nb.plot_var('Age_diff',cmap='bwr',figname=figname,clim=[-1,1])
+    
+    
+    
 exit()
-
-#switch
-f = '/input_obs_data/FRASIL/run01_part1/nextsim_outputs/field_20050915T000000Z.bin'
-nb = NextsimBin(f)
-
-ic = nb.get_var('Concentration')
-icthin = nb.get_var('Concentration_thin_ice')
-ic = ic-icthin
-
-ic_osi = nb.get_external_data('/input_obs_data/OSISAF_ice_conc/polstere/2005_nh_polstere/ice_conc_nh_polstere-100_multi_200509151200.nc',
-                    'ice_conc')
-
-#apply masks to both datasets
-sf_osi = nb.get_external_data('/input_obs_data/OSISAF_ice_conc/polstere/2005_nh_polstere/ice_conc_nh_polstere-100_multi_200509151200.nc',
-                    'status_flag')
-
-mask=sf_osi>20                      #this will be land mask and north pole hole
-#ic = np.ma.array(ic,mask=mask)
-ic = np.where(mask,0,ic)
-
-
-ic_diff = ic - ic_osi/100
-nb.add_var('IC difference', f, ic_diff)
-nb.plot_var('IC difference',cmap='bwr',figname='test_map4.png',clim=[-1,1])
-
 
 #plot just the mask
 osi_mask = np.where(mask,0,1)

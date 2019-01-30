@@ -1,6 +1,6 @@
 import numpy as np
 from glob import glob
-from datetime import datetime
+from datetime import datetime,timedelta
 import pandas as pd
 import matplotlib.pyplot as plt
 
@@ -130,19 +130,23 @@ fyi_osi = np.load(outpath+'fyi_osi.npy')/1e3  #10^3 km^2
 myi_osi = np.load(outpath+'myi_osi.npy')/1e3
 oi_osi = np.load(outpath+'oi_osi.npy')/1e3
 
-#import to pandas and plot
-df_osi = pd.DataFrame({ 'MYI OSI-SAF' : myi_osi+oi_osi,
-                        'FYI OSI-SAF' : fyi_osi,
-                        'total OSI-SAF' : fyi_osi+myi_osi+oi_osi}, index=dates_osi)
+#load OSI-SAF cumulated ice type
+dates_osi_cumul = np.load(outpath+'dates_osi_jan_cumul.npy')-timedelta(hours=12)
+myi_osi_cumul = np.load(outpath+'myi_osi_jan_cumul.npy')/1e3  #10^3 km^2
+
+#import to pandas
+df_osi = pd.DataFrame({ 'MYI OSI-SAF' : myi_osi+oi_osi}, index=dates_osi)
+
+tmp = pd.DataFrame({ 'MYI OSI-SAF cumul' : myi_osi_cumul}, index=dates_osi_cumul)
 
 #make winter (January) averages
 dfmon_osi = df_osi.resample('M').mean()
 dfmon_osi_std = df_osi.resample('M').std()
+dfjan_osi = dfmon_osi.loc[dfmon_osi.index.month==1]
+dfjan_osi_std = dfmon_osi_std.loc[dfmon_osi_std.index.month==1]
+result_osi = dfjan_osi.join(tmp, how='outer')
 
-
-
-
-#import to pandas and plot
+#import to pandas
 df = pd.DataFrame({ 'total' : area,
                     'FYI' : area - myi_area,
                     'FYI age' : aoy0,
@@ -152,37 +156,44 @@ df = pd.DataFrame({ 'total' : area,
 
 #make winter (January) averages
 dfmon = df.resample('M').mean()
+dfjan = dfmon.loc[dfmon.index.month==1]
+
 
 #join obs and simulations into one table
-result = dfmon.join(dfmon_osi, how='outer')
+result = dfjan.join(result_osi, how='outer')
 print(result)
-print(result.loc[dfmon.index.month==1].iloc[:,3:7])
 
 
-#fig1 = df.iloc[:, 4:].plot.area().get_figure()
-#fig1.savefig('test1.png')
+#load
+dates_bias = np.load(outpath+'dates_bias.npy')
+snow_bias = np.load(outpath+'snow_bias.npy')
+ridge_bias = np.load(outpath+'ridge_bias.npy')
 
 
-##fig2 = df.iloc[:, 0].plot().get_figure()
-##fig2.savefig('test.png')
+bias = pd.DataFrame({ 'mean snow depth' : snow_bias,
+                    'mean ridge ratio' : ridge_bias}, index=dates_osi_cumul[:-2])
 
 
-#fig3 = dfjan.iloc[:, 0].plot().get_figure()
-#fig3.savefig('test2.png')
+result_bias = result.join(bias, how='outer')
+print(result_bias)
 
 
 
-start = result.loc[dfmon.index.month==1].iloc[:,3:7].index[0]
-end = result.loc[dfmon.index.month==1].iloc[:,3:7].index[-1]
+start = result.iloc[:,3:].index[5]
+end = result.iloc[:,3:].index[-1]
 
-plt.figure()
-result.loc[dfmon.index.month==1].iloc[:,3:7].plot(xlim=(start,end),yerr=dfmon_osi_std,title='1. January ice type/age area',lw=2,figsize=(12,2))
+fig, axes = plt.subplots(nrows=2, ncols=1,figsize=(10,5))
+
+#plt.figure()
+result.iloc[:,3:].plot(ax=axes[0],xlim=(start,end),yerr=dfjan_osi_std,title='1. January ice type/age area',lw=2)
 plt.ylabel(r'Area (10$^3$ km$^2$)')
-plt.savefig('osi.png')
 
 
-#fig5 = result.iloc[:, :].plot(title='1. January ice type/age area').get_figure()
-#fig5.savefig('total_area.png')
+result_bias.iloc[:,8:].plot(ax=axes[1],xlim=(start,end),lw=2)
+
+fig.savefig('osi.png')
+
+
 
 
 

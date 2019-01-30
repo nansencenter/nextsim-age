@@ -105,6 +105,12 @@ dfmon_std = df.resample('M').std()
 dfjan = dfmon.loc[dfmon.index.month==1]
 print(dfjan)
 
+#check the max extent of MYI in January
+dfmax = df.resample('M').max()
+dfmax_jan = dfmax.loc[dfmax.index.month==1]
+print(dfmax_jan)
+#are the differences from mean large? Where are these regions? Do they correlate with regions with deep snow and high ridge fraction?
+
 fig2 = dfmon.loc[dfmon.index.month==1].plot(yerr=dfmon_std).get_figure()
 fig2.savefig('osi_test.png')
 

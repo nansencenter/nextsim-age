@@ -21,14 +21,19 @@ nb.variables
 #preview a variable
 nb.plot_var('Fyi_fraction')
 
-#scale age to years
+#scale observable age to years
 age_os = nb.get_var('Age_o')
 age_oy = age_os/60/60/24/365
 print(np.max(age_oy))
 nb.add_var('Age_oy', f, age_oy)
 nb.plot_var('Age_oy')
 
-
+#scale true (volume) age to years
+age_s = nb.get_var('Age')
+age_y = age_s/60/60/24/365
+print(np.max(age_y))
+nb.add_var('Age_y', f, age_y)
+nb.plot_var('Age_y')
 
 
 
@@ -58,3 +63,7 @@ nb.plot_external_data('/input_obs_data/OSISAF_ice_type/2006/09/ice_type_nh_polst
 t_osisaf = nb.get_external_data('/input_obs_data/OSISAF_ice_type/2006/09/ice_type_nh_polstere-100_multi_200609041200.nc',
                       'ice_type')
 
+
+# get SIC from osisaf on neXtSIM mesh elements
+d_osisaf = nb.get_external_data('/input_obs_data/OSISAF_ice_drift/2010/01/ice_drift_nh_polstere-625_multi-oi_201001011200-201001031200.nc',
+                     'dX')

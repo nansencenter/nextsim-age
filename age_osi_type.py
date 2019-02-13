@@ -5,9 +5,9 @@ from datetime import datetime
 import matplotlib.pyplot as plt
 import pandas as pd
 
-inpath='/input_obs_data/'
+inpath='/input_obs_data/data/'
 outpath = 'data/outputs/'
-outpath_plots = 'plots/'
+outpath_plots = 'plots/run04/'
 
 #outpath='../plots/'
 
@@ -19,7 +19,7 @@ outpath_plots = 'plots/'
 
 
 #make the list of all files
-fl = sorted(glob(inpath+'OSISAF_ice_type/**/01/ice_type_nh_polstere-100_multi_*1200.nc', recursive=True))
+fl = sorted(glob(inpath+'OSISAF_ice_type/**/04/ice_type_nh_polstere-100_multi_*1200.nc', recursive=True))
 print(fl)
 
 date_list = []
@@ -79,16 +79,16 @@ for i in range(0,len(fl[:])):
     oi_list.append(oi)
 
 #save all the data   
-np.save(outpath+'dates_osi_jan',np.array(date_list))
-np.save(outpath+'fyi_osi_jan',np.array(fyi_list))
-np.save(outpath+'myi_osi_jan',np.array(myi_list))
-np.save(outpath+'oi_osi_jan',np.array(oi_list))
+np.save(outpath+'dates_osi_apr',np.array(date_list))
+np.save(outpath+'fyi_osi_apr',np.array(fyi_list))
+np.save(outpath+'myi_osi_apr',np.array(myi_list))
+np.save(outpath+'oi_osi_apr',np.array(oi_list))
 
 #load OSI-SAF sea ice type data
-dates = np.load(outpath+'dates_osi_jan.npy')
-fyi = np.load(outpath+'fyi_osi_jan.npy')/1e3  #10^3 km^2
-myi = np.load(outpath+'myi_osi_jan.npy')/1e3
-oi = np.load(outpath+'oi_osi_jan.npy')/1e3
+dates = np.load(outpath+'dates_osi_apr.npy')
+fyi = np.load(outpath+'fyi_osi_apr.npy')/1e3  #10^3 km^2
+myi = np.load(outpath+'myi_osi_apr.npy')/1e3
+oi = np.load(outpath+'oi_osi_apr.npy')/1e3
 
 #import to pandas and plot
 df = pd.DataFrame({ 'FYI area' : fyi,
@@ -102,17 +102,17 @@ df = pd.DataFrame({ 'FYI area' : fyi,
 #make winter (January) averages
 dfmon = df.resample('M').mean()
 dfmon_std = df.resample('M').std()
-dfjan = dfmon.loc[dfmon.index.month==1]
+dfjan = dfmon.loc[dfmon.index.month==4]
 print(dfjan)
 
 #check the max extent of MYI in January
 dfmax = df.resample('M').max()
-dfmax_jan = dfmax.loc[dfmax.index.month==1]
-print(dfmax_jan)
+dfmax_apr = dfmax.loc[dfmax.index.month==4]
+print(dfmax_apr)
 #are the differences from mean large? Where are these regions? Do they correlate with regions with deep snow and high ridge fraction?
 
-fig2 = dfmon.loc[dfmon.index.month==1].plot(yerr=dfmon_std).get_figure()
-fig2.savefig('osi_test.png')
+fig2 = dfmon.loc[dfmon.index.month==4].plot(yerr=dfmon_std).get_figure()
+fig2.savefig(outpath_plots+'osi_test.png')
 
 
 

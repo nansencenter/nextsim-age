@@ -8,9 +8,9 @@ import cartopy
 import cartopy.crs as ccrs
 import pandas as pd
 
-inpath='/input_obs_data/'
+inpath='/input_obs_data/data/'
 outpath = 'data/outputs/'
-outpath_plots = 'plots/'
+outpath_plots = 'plots/run04/'
 
 #outpath='../plots/'
 
@@ -20,10 +20,14 @@ outpath_plots = 'plots/'
 #"  3 -> ice that survived a summer melt\n",
 #"  4 -> ambiguous ice type" ;
 
+#WARNING: some features of cartopy do not work with matplotlib 3.0.0
+#use:
+#pip uninstall matplotlib
+#pip install matplotlib
 
 #make the list of all files
-fl = sorted(glob(inpath+'OSISAF_ice_type/**/01/ice_type_nh_polstere-100_multi_*1200.nc', recursive=True))
-#print(fl)
+fl = sorted(glob(inpath+'OSISAF_ice_type/**/04/ice_type_nh_polstere-100_multi_*1200.nc', recursive=True))
+print(fl)
 
 date_list = []
 myi_list = []
@@ -40,9 +44,9 @@ landmask = sf==0
 
 #loop over all the years
 #accummulate ice type on maps for each January
-years = range(2006,2019)
+years = range(2005,2019)
 for yr in years:
-    fl = sorted(glob(inpath+'OSISAF_ice_type/'+str(yr)+'/01/ice_type_nh_polstere-100_multi_*1200.nc'))
+    fl = sorted(glob(inpath+'OSISAF_ice_type/'+str(yr)+'/04/ice_type_nh_polstere-100_multi_*1200.nc'))
     print(yr)
     
     freq = np.zeros_like(sf)
@@ -171,15 +175,15 @@ myi_cumul = np.load(outpath+'myi_osi_jan_cumul.npy')/1e3  #10^3 km^2
 
 
 #load OSI-SAF sea ice type data
-dates = np.load(outpath+'dates_osi_jan.npy')
-myi = np.load(outpath+'myi_osi_jan.npy')/1e3
+dates = np.load(outpath+'dates_osi_apr.npy')
+myi = np.load(outpath+'myi_osi_apr.npy')/1e3
 #import to pandas and plot
 df = pd.DataFrame({ 'MYI area' : myi}, index=dates)
 #make winter (January) averages
 dfmon = df.resample('M').mean()
 dfmon_std = df.resample('M').std()
-dfjan = dfmon.loc[dfmon.index.month==1]
-dfjan_std = dfmon_std.loc[dfmon_std.index.month==1]
+dfjan = dfmon.loc[dfmon.index.month==4]
+dfjan_std = dfmon_std.loc[dfmon_std.index.month==4]
 
 #import to pandas and plot
 tmp = pd.DataFrame({ 'MYI area cumul' : myi_cumul}, index=dates_cumul)
@@ -191,7 +195,7 @@ print(tmp)
 print(result)
 
 fig1 = result.iloc[:, :].plot(yerr=dfjan_std).get_figure()
-fig1.savefig('osi_test_cumul.png')
+fig1.savefig(outpath_plots+'osi_test_cumul.png')
 
 
 

@@ -5,9 +5,13 @@ from datetime import datetime, timedelta
 from pynextsim.nextsim_bin import NextsimBin
 import matplotlib.pyplot as plt
 
+##new simulations 
+#cd data/run04_sept
+#ln -s /input_obs_data/einar/age_datarmor/*0915T000000Z* .
+
 
 inpath_ps = 'data/'
-inpath = 'data/run01_sept/'
+inpath = 'data/run04_sept/'
 outpath_plots = 'plots/'
 
 #read the PIOMAS sea ice volume
@@ -61,8 +65,8 @@ dfmon2 = df2.resample('M').mean()
 dfmon = dfmon1.join(dfmon2, how='outer')
 
 plt.figure()
-dfmon.loc[dfmon.index.month==9].iloc[27:,:].plot(title='September sea ice volume',lw=3)
+dfmon.loc[dfmon.index.month==9].iloc[20:,:].plot(title='September sea ice volume',lw=3)
 plt.ylabel(r'Volume (10$^3$ km$^3$)')
-plt.savefig(outpath_plots+'piomas.png')
+plt.savefig(outpath_plots+'piomas_run04.png')
 
 

@@ -12,9 +12,9 @@ from pynextsim.file_list import FileList
 #ln -s /input_obs_data/FRASIL/run01_part6/nextsim_outputs/*0915T000000Z* .   #and same for all the other parts
 
 #September (aka 'switch') sea ice concentration differences
-inpath = 'data/run01_sept/'
-icosi_path = '/input_obs_data/OSISAF_ice_conc/polstere/'
-outpath_plots = 'plots/'
+inpath = 'data/run04_sept/'
+icosi_path = '/input_obs_data/data/OSISAF_ice_conc/polstere/'
+outpath_plots = 'plots/run04/'
 
 
 fl = sorted(glob(inpath+'field*0915T000000Z.bin'))
@@ -27,6 +27,7 @@ for f in fl:
     icthin = nb.get_var('Concentration_thin_ice')
 
     icthick = ic-icthin
+    icthick=ic
 
     tmp = f.split('_')[-1].split('T')[0]
     date = datetime.strptime(tmp, "%Y%m%d")
@@ -34,7 +35,7 @@ for f in fl:
 
     #OSI-SAF data
     year = str(date.year)
-    if int(year)<2006: continue
+    if int(year)<2007: continue
     stamp = datetime.strftime(date, "%Y%m%d")+'1200'
     print(stamp)
     
@@ -48,7 +49,7 @@ for f in fl:
     ic = np.where(landmask,0,ic)
     ic_osi = np.where(landmask,0,ic_osi)
 
-    icthick = ic-icthin
+    #icthick = ic-icthin
     icthick = np.where(landmask,0,icthick)
     
     #ice concentration difference

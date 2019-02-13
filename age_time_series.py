@@ -14,7 +14,13 @@ from pynextsim.file_list import FileList
 #ulimit -s 65536
 #mkdir data/run01
 #cd data/run01
-#ln -s /input_obs_data/FRASIL/run01_part1/nextsim_outputs/*0101T000000Z* .   #and same for all the other parts
+#ln -s /input_obs_data/data/FRASIL/run01_part1/nextsim_outputs/*0101T000000Z* .   #and same for all the other parts
+
+##new simulations (with new dynamical core) is called run04
+##best comparision point might be April and not January (end of winter/growth, most ice, least motion)
+#cd data/run04
+#ln -s /input_obs_data/einar/age_datarmor/*0401T000000Z* .
+
 
 ###scp just 2015 files!!!
 #output older than 2015 can be removed from hexagon!!!

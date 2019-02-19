@@ -63,9 +63,7 @@ for f in fl:
     
     #smoothen the data for nicer contours
     myi_smooth = smooth_data(myi,lon,lat,lon_gm,lat_gm)
-    ic_smooth = smooth_data(ic,lon,lat,lon_gm,lat_gm)
     myi_osi_smooth = smooth_data(myi_osi_cumul,lon_osi,lat_osi,lon_gm,lat_gm)
-    ic_osi_smooth = smooth_data(ic_osi,lon_osi,lat_osi,lon_gm,lat_gm) 
 
     plot_contour(lon_g,lat_g,data=[myi_smooth,myi_osi_smooth],levels=[.1,.1],colors=['red','purple'], lw=[3,3], \
                  labels=['neXtSIM MYI extent','OSI-SAF MYI extent'],outname=outpath_plots+'it_contour_'+year+'.png')
@@ -75,10 +73,10 @@ for f in fl:
     snow_smooth = smooth_data(snow,lon,lat,lon_gm,lat_gm)
     rr_smooth = smooth_data(rr,lon,lat,lon_gm,lat_gm)
     
-    plot_contour_bg(lon_g,lat_g,rr_smooth,data=[myi_smooth,myi_osi_smooth],levels=[.1,.1],colors=['red','purple'], lw=[3,3], \
+    plot_contour_bg(lon_g,lat_g,rr_smooth,data=[myi_smooth,myi_osi_smooth],levels=[.05,.1],colors=['red','purple'], lw=[3,3], \
                  labels=['neXtSIM MYI extent','OSI-SAF MYI extent'],bg_label='Ridge ratio',outname=outpath_plots+'it_contour_bg_'+year+'.png')
     
-    plot_contour_bg(lon_g,lat_g,snow_smooth,data=[myi_smooth,myi_osi_smooth],levels=[.1,.1],colors=['red','purple'], lw=[3,3], \
+    plot_contour_bg(lon_g,lat_g,snow_smooth,data=[myi_smooth,myi_osi_smooth],levels=[.05,.1],colors=['red','purple'], lw=[3,3], \
                  labels=['neXtSIM MYI extent','OSI-SAF MYI extent'],bg_label='Snow',outname=outpath_plots+'it_contour_bg_snow_'+year+'.png')
     
     

@@ -126,3 +126,11 @@ def smooth_data(data,lon,lat,coarse_lon,coarse_lat):
 #outProj = Proj("+init=EPSG:4326") # WGS84 in degrees
 #lonc,latc=transform(inProj,outProj,xc,yc)
 
+#Hi @loniitkina, this class can't be initialised in this way.
+#To get the default nextsim projection:
+#proj=ProjectionInfo()
+#You can also get it from
+#nbi = NextsimBin(f)
+#proj = nbi.mesh_info.projection
+#and if you have an mppfile
+#proj==ProjectionInfo.init_from_mppfile(mppfile=...)

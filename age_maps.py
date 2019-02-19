@@ -32,6 +32,14 @@ for f in fl:
     
     #neXtSIM data
     nb = NextsimBin(f)
+    
+    ##alternative plotting:
+    #x,y = nb.get_xy_grids()
+    #lon,lat=nb.mapping(x,y,inverse=True)
+    #ic=nb.get_gridded_vars(['Concentration'],x,y)['Concentration']
+    
+    #plot_pcolormesh(lon,lat,ic,'test.png',vmin=0,vmax=1,label='Sea Ice Concentration')
+
     ic = nb.get_var('Concentration')
     icthin = nb.get_var('Concentration_thin_ice')
     fyi = nb.get_var('Fyi_fraction')

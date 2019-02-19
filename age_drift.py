@@ -54,13 +54,19 @@ for yr in years:
         f = Dataset(fn)
         u = f.variables['siu'][:]
         v = f.variables['siv'][:]
+        sic = f.variables['sic'][:]
 
-        #make averages over 3 days
-        meanu = (u[i,:,:] + u[i+1,:,:] + u[i+2,:,:])/3
-        meanv = (v[i,:,:] + v[i+1,:,:] + v[i+2,:,:])/3
+        #make averages over 2 days
+        #this is not perfect as the image is taken not at midnight, but sometime during the day
+        meanu = (u[i,:,:] + u[i+1,:,:])/2
+        meanv = (v[i,:,:] + v[i+1,:,:])/2
+        meanic = (sic[i,:,:] + sic[i+1,:,:])/2
         speed = np.sqrt(meanu**2 +meanv**2)
         
         speed_nearest = pyresample.kd_tree.resample_nearest(orig_def, speed, \
+            targ_def, radius_of_influence=500000, fill_value=None)
+        
+        sic_nearest = pyresample.kd_tree.resample_nearest(orig_def, meanic, \
             targ_def, radius_of_influence=500000, fill_value=None)
         
         #OSI-SAF data
@@ -73,7 +79,7 @@ for yr in years:
         speed_osi = np.sqrt(dX**2 + dY**2)/3/24/60/60
         
         #matching the area
-        mask = (speed_nearest==0) | (sf<20)       #open water has 0 velocity
+        mask = (sic_nearest<.15) | (sf<20)       #no low SIC data and just best quality
         speed_nearest = np.ma.array(speed_nearest,mask=mask)
         speed_osi = np.ma.array(speed_osi,mask=mask)
 
@@ -84,15 +90,15 @@ for yr in years:
     #OSI-SAF counter
     o=o+1
 
-
+bl = np.arange(0,.6,.01)
 #plot a PDF
-n, bins, patches = plt.hist(slist, 50, normed=True, histtype='step', color='purple', alpha=.8, label='neXtSIM', lw = 3)
-n, bins, patches = plt.hist(slist_osi, 50, normed=True, histtype='step', alpha=.8, label='OSI-SAF', lw = 3)
+n, bins, patches = plt.hist(slist, bl, normed=True, histtype='step', color='purple', alpha=.8, label='neXtSIM', lw = 3)
+n, bins, patches = plt.hist(slist_osi, bl, normed=True, histtype='step', alpha=.8, label='OSI-SAF', lw = 3)
 
 
 plt.xlabel('Speed (m/s)')
 plt.ylabel('Probability')
-plt.title('Probability distribution of mean 3-day speed \nfor January 2007-2008')
+plt.title('Probability distribution of mean 2-day speed \nfor January 2007-2008')
 #plt.text(60, .025, r'$\mu=100,\ \sigma=15$')
 #plt.axis([40, 160, 0, 0.03])
 plt.legend(loc='upper right',prop={'size':16})

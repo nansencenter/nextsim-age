@@ -8,7 +8,7 @@ import cartopy
 import cartopy.crs as ccrs
 import pandas as pd
 
-inpath='/input_obs_data/CFSR/'
+inpath='/input_obs_data/data/CFSR/'
 outpath = 'data/outputs/'
 outpath_plots = 'plots/'
 
@@ -77,6 +77,7 @@ for yr in years:
 
     # plot sea ice field
     pp = plt.pcolormesh(lons,lats,freq,vmin=0,vmax=.05, cmap='jet', transform=ccrs.PlateCarree())
+    plt.contour(lons,lats,freq,levels=[0.01], transform=ccrs.PlateCarree())
 
 
     # add the colourbar to the bottom of the plot.
@@ -91,3 +92,4 @@ for yr in years:
     output = 'cfsr_warm_freq_'+str(yr)+'.png'
     plt.savefig(outpath_plots+output,bbox_inches='tight')
     
+    exit()

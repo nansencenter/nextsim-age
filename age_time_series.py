@@ -30,91 +30,91 @@ inpath = 'data/run04/'
 outpath = 'data/outputs/'
 outpath_plots = 'plots/run04/'
 
-#date_l = []
-#myi_area_l = []; fyi_area_l = []
-#myi_it_l = []; fyi_it_l = []
-#myi_rr_l = []; fyi_rr_l = []
-#myi_sd_l = []; fyi_sd_l = []
+date_l = []
+myi_area_l = []; fyi_area_l = []
+myi_it_l = []; fyi_it_l = []
+myi_rr_l = []; fyi_rr_l = []
+myi_sd_l = []; fyi_sd_l = []
 
-#aoy0_l = []
-#aoy1_l = []
-#aoy2_l = []
+aoy0_l = []
+aoy1_l = []
+aoy2_l = []
 
 
-#f = FileList(inpath)
-#for nb, fn, date in zip(f.objects[:], f.filelist[:], f.datetimes[:]):
-    #print(date)
-    #date_l.append(date)
+f = FileList(inpath)
+for nb, fn, date in zip(f.objects[:], f.filelist[:], f.datetimes[:]):
+    print(date)
+    date_l.append(date)
     
-    #ea = nb.get_var('Element_area')
-    #fyi = nb.get_var('Fyi_fraction')
-    #ic = nb.get_var('Concentration')
-    #icthin = nb.get_var('Concentration_thin_ice')
-    #it = nb.get_var('Thickness')
-    #rr = nb.get_var('Ridge_ratio')
-    #sd = nb.get_var('Snow')
-    #ao = nb.get_var('Age_d')
+    ea = nb.get_var('Element_area')
+    fyi = nb.get_var('Fyi_fraction')
+    ic = nb.get_var('Concentration')
+    icthin = nb.get_var('Concentration_thin_ice')
+    it = nb.get_var('Thickness')
+    rr = nb.get_var('Ridge_ratio')
+    sd = nb.get_var('Snow')
+    ao = nb.get_var('Age_d')
     
-    #myi = ic-icthin-fyi
-    #myi_bin = np.where(myi>.1,1,0)
-    #fyi_bin = np.where(fyi>.9,1,0)
+    myi = ic-icthin-fyi
+    myi_bin = np.where(myi>.1,1,0)
+    fyi_bin = np.where(fyi>.9,1,0)
     
-    ##masking with OSI-SAF mask
-    #sf_osi = nb.get_external_data('/input_obs_data/data/OSISAF_ice_conc/polstere/2006_nh_polstere/ice_conc_nh_polstere-100_multi_200601011200.nc',
-                        #'status_flag')
-    #mask=sf_osi>20                      #this will be land mask and north pole hole
-    #ea = np.where(mask,0,ea)
+    #masking with OSI-SAF mask
+    sf_osi = nb.get_external_data('/input_obs_data/data/OSISAF_ice_conc/polstere/2006_nh_polstere/ice_conc_nh_polstere-100_multi_200601011200.nc',
+                        'status_flag')
+    mask=sf_osi>20                      #this will be land mask and north pole hole
+    ea = np.where(mask,0,ea)
         
-    ##area
-    #myi_area = np.sum(myi_bin*ea*ic)
-    #fyi_area = np.sum(fyi_bin*ea*ic)
-    #myi_area_l.append(myi_area); fyi_area_l.append(fyi_area)
+    #area
+    myi_area = np.sum(myi_bin*ea*ic)
+    fyi_area = np.sum(fyi_bin*ea*ic)
+    myi_area_l.append(myi_area); fyi_area_l.append(fyi_area)
     
-    ##mean sea ice thickness
-    #myi_it = np.mean(myi_bin*it*ic)
-    #fyi_it = np.mean(fyi_bin*it*ic)
-    #myi_it_l.append(myi_it); fyi_it_l.append(fyi_it)
+    #mean sea ice thickness
+    myi_it = np.mean(myi_bin*it*ic)
+    fyi_it = np.mean(fyi_bin*it*ic)
+    myi_it_l.append(myi_it); fyi_it_l.append(fyi_it)
     
-    ##mean ridge ratio
-    #myi_rr = np.mean(myi_bin*rr*ic)
-    #fyi_rr = np.mean(fyi_bin*rr*ic)
-    #myi_rr_l.append(myi_rr); fyi_rr_l.append(fyi_rr)
+    #mean ridge ratio
+    myi_rr = np.mean(myi_bin*rr*ic)
+    fyi_rr = np.mean(fyi_bin*rr*ic)
+    myi_rr_l.append(myi_rr); fyi_rr_l.append(fyi_rr)
     
-    ##mean snow depth
-    #myi_sd = np.mean(myi_bin*sd*ic)
-    #fyi_sd = np.mean(fyi_bin*sd*ic)
-    #myi_sd_l.append(myi_sd); fyi_sd_l.append(fyi_sd)
+    #mean snow depth
+    myi_sd = np.mean(myi_bin*sd*ic)
+    fyi_sd = np.mean(fyi_bin*sd*ic)
+    myi_sd_l.append(myi_sd); fyi_sd_l.append(fyi_sd)
     
     
-    ##ice age
-    ##classify ice age into year classes and calculate volume
-    #aoy = ao/60/60/24/365
+    #ice age
+    #classify ice age into year classes and calculate volume
+    aoy = ao/60/60/24/365
     
-    ##in January, FYI is up to 3.5 months old (1/3 of year)
-    ##1st year ice area (area composed purely of FYI)
-    #mask = (aoy>.33)
-    #aoy0 = np.sum(np.ma.array(ic,mask=mask)*ea)
+    #in January, FYI is up to 3.5 months old (1/3 of year)
+    #1st year ice area (area composed purely of FYI)
+    mask = (aoy>.33)
+    aoy0 = np.sum(np.ma.array(ic,mask=mask)*ea)
     
-    ##mixed ice area (area composed of ice that is a mixture of FYI and older ice - e.g. lead ice in the central Arctic)
-    #mask = (aoy<=.33) | (aoy>1.33)
-    #aoy1 = np.sum(np.ma.array(ic,mask=mask)*ea)
+    #mixed ice area (area composed of ice that is a mixture of FYI and older ice - e.g. lead ice in the central Arctic)
+    mask = (aoy<=.33) | (aoy>1.33)
+    aoy1 = np.sum(np.ma.array(ic,mask=mask)*ea)
     
-    ##MYI area
-    #mask = (aoy<=1.33)
-    #aoy2 = np.sum(np.ma.array(ic,mask=mask)*ea)
+    #MYI area
+    mask = (aoy<=1.33)
+    aoy2 = np.sum(np.ma.array(ic,mask=mask)*ea)
             
-    #aoy0_l.append(aoy0)
-    #aoy1_l.append(aoy1)
-    #aoy2_l.append(aoy2)
+    aoy0_l.append(aoy0)
+    aoy1_l.append(aoy1)
+    aoy2_l.append(aoy2)
 
-##save ice type data 
-#outfile = outpath+'april_myi' 
-#np.savez(outfile,dates = np.array(date_l),myi_area = np.array(myi_area_l), fyi_area = np.array(fyi_area_l), myi_it = np.array(myi_it_l),fyi_it = np.array(fyi_it_l), \
-    #myi_rr = np.array(myi_rr_l), fyi_rr = np.array(fyi_rr_l), myi_sd = np.array(myi_sd_l), fyi_sd = np.array(fyi_sd_l) )    
+#save ice type data 
+outfile = outpath+'april_myi' 
+np.savez(outfile,dates = np.array(date_l),myi_area = np.array(myi_area_l), fyi_area = np.array(fyi_area_l), myi_it = np.array(myi_it_l),fyi_it = np.array(fyi_it_l), \
+    myi_rr = np.array(myi_rr_l), fyi_rr = np.array(fyi_rr_l), myi_sd = np.array(myi_sd_l), fyi_sd = np.array(fyi_sd_l) )    
 
-##save ice age data
-#outfile = outpath+'april_aoy' 
-#np.savez(outfile,dates = np.array(date_l),aoy0 = np.array(aoy0_l), aoy1 = np.array(aoy1_l), aoy2 = np.array(aoy2_l) )
+#save ice age data
+outfile = outpath+'april_aoy' 
+np.savez(outfile,dates = np.array(date_l),aoy0 = np.array(aoy0_l), aoy1 = np.array(aoy1_l), aoy2 = np.array(aoy2_l) )
 
 #load ice type data
 container = np.load(outpath+'april_myi.npz')

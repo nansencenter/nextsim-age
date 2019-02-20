@@ -18,47 +18,38 @@ outpath_plots = 'plots/'
 
 #make the list of all files
 fl = sorted(glob(inpath+'cfsr.6h.*.nc', recursive=True))
-#print(fl)
-
-date_list = []
-warm_day_list = []
-
-#get the land and NP-hole mask (north pole hole got smaller over time!!!)
+#get the grid
 f = Dataset(fl[0])
 temp = f.variables['TMP_L103']
 lats = f.variables['lat'][:]
 lons = f.variables['lon'][:]
 
 #loop over all the years
-#accummulate ice type on maps for each January
-years = range(2005,2016)
+years = range(2004,2016)
 for yr in years:
     print(yr)
-    fl = sorted(glob(inpath+'cfsr.6h.'+str(yr)+'*.nc'))
+    #November-March
+    fl = sorted(glob(inpath+'cfsr.6h.'+str(yr)+'*11.nc'))+sorted(glob(inpath+'cfsr.6h.'+str(yr)+'*12.nc'))+ \
+        sorted(glob(inpath+'cfsr.6h.'+str(yr+1)+'*01.nc'))+sorted(glob(inpath+'cfsr.6h.'+str(yr+1)+'*02.nc'))+sorted(glob(inpath+'cfsr.6h.'+str(yr+1)+'*03.nc'))
+    print(fl)
     
     freq = np.zeros_like(temp[0,:,:])
     times = 0
     
     for i in range(0,len(fl[:])):
-        f = fl[i]
-        print(f)
-        
-        #select only Nov-Dec
-        mon = f.split('.')[2].split(str(yr))[-1]
-        if int(mon) < 11: continue
-        print(mon)
-        
+        f = fl[i]        
         f = Dataset(f)
         temp = f.variables['TMP_L103'][:,:,:]-273.15    #convert from K to C
         
-        warm = np.where(temp>0,1,0)
+        warm = np.where(temp>-5,1,0)
         times = times+warm.shape[0]
         freq = freq+np.sum(warm,axis=0)
         
     freq = freq/times
     
-    print(times)
-    print(freq.shape)
+    #store the data
+    output = outpath+'cfsr_warm_freq_'+str(yr)
+    freq.dump(output)
     
     #plot a map
     #%% Make the figure
@@ -89,7 +80,7 @@ for yr in years:
     cbar = plt.colorbar(pp, cax=cbar_ax, orientation='horizontal', ticks=np.arange(0,1.1,0.1))
     cbar.set_label(label='warm-6h fraction',size=14, family='serif')
     
-    output = 'cfsr_warm_freq_'+str(yr)+'.png'
-    plt.savefig(outpath_plots+output,bbox_inches='tight')
+    output = outpath_plots+'cfsr_warm_freq_'+str(yr)+'.png'
+    plt.savefig(output,bbox_inches='tight')
     
-    exit()
+    ##exit()

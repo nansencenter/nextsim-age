@@ -12,6 +12,8 @@ from age_func import *
 inpath = 'data/run04/'
 icosi_path = '/input_obs_data/data/OSISAF_ice_conc/polstere/'
 tyosi_path = '/input_obs_data/data/OSISAF_ice_type/'
+cfsr_path = '/input_obs_data/data/CFSR/'
+cfsr_path1 = 'data/outputs/'
 outpath_plots = 'plots/run04/'
 
 fl = sorted(glob(inpath+'field*0401T000000Z.bin'))
@@ -22,6 +24,11 @@ lat_g = np.arange(90,62,-.1)
 lon_g = np.arange(-180,181,1.)   
 lon_gm, lat_gm = np.meshgrid(lon_g,lat_g)
 
+#read CFSR grid
+f = Dataset(cfsr_path+'cfsr.6h.197901.nc')
+lat_f = f.variables['lat'][:]
+lon_f = f.variables['lon'][:]
+lon_fm, lat_fm = np.meshgrid(lon_f,lat_f)
 
 snow_bias = []
 ridge_bias = []
@@ -79,19 +86,16 @@ for f in fl:
     plot_contour_bg(lon_g,lat_g,snow_smooth,data=[myi_smooth,myi_osi_smooth],levels=[.05,.1],colors=['red','purple'], lw=[3,3], \
                  labels=['neXtSIM MYI extent','OSI-SAF MYI extent'],bg_label='Snow',outname=outpath_plots+'it_contour_bg_snow_'+year+'.png')
     
-    
-    
-    
     #plot CFSR 'fall warm intrusions extent' as background
+    yr = int(year)-1
+    cfsr = np.load(cfsr_path1+'cfsr_warm_freq_'+str(yr))
+    cfsr_smooth = smooth_data(cfsr,lon_fm,lat_fm,lon_gm,lat_gm)
     
+    plot_contour_bg(lon_g,lat_g,cfsr_smooth,data=[myi_smooth,myi_osi_smooth],levels=[.05,.1],colors=['red','purple'], lw=[3,3], \
+                 labels=['neXtSIM MYI extent','OSI-SAF MYI extent'],bg_label='warm instrusions freq',outname=outpath_plots+'it_contour_bg_cfsr_'+year+'.png')
 
-    #exit()
-    
-    
 
 
-    
-    
     ##maps of snow and ridge ratio
     #figname = outpath_plots+'snow_'+year+'.png'
     #nb.plot_var('Snow',figname=figname,clim=[0,1])

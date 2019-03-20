@@ -3,6 +3,7 @@ from glob import glob
 from datetime import datetime
 from netCDF4 import Dataset
 import matplotlib.pyplot as plt
+import pandas as pd
 from pynextsim.nextsim_bin import NextsimBin
 from pynextsim.file_list import FileList
 
@@ -10,10 +11,10 @@ from age_func import *
 
 #make April 1 maps
 inpath = 'data/run04/'
+outpath = 'data/outputs/'
 icosi_path = '/input_obs_data/data/OSISAF_ice_conc/polstere/'
 tyosi_path = '/input_obs_data/data/OSISAF_ice_type/'
 cfsr_path = '/input_obs_data/data/CFSR/'
-cfsr_path1 = 'data/outputs/'
 outpath_plots = 'plots/run04/'
 
 fl = sorted(glob(inpath+'field*0401T000000Z.bin'))
@@ -32,7 +33,7 @@ lon_fm, lat_fm = np.meshgrid(lon_f,lat_f)
 
 snow_bias = []
 ridge_bias = []
-area_bias = []
+warm_bias = []
 dates = []
 
 for f in fl:
@@ -59,7 +60,6 @@ for f in fl:
     
     #OSI-SAF data
     tmp = year+'04301200'
-    outpath = 'data/outputs/'
     netcdf_name = 'OSI-SAF_ice_type_cumul_'+tmp+'.nc'
     fosi_cumul = outpath+netcdf_name
     f = Dataset(fosi_cumul)
@@ -88,66 +88,48 @@ for f in fl:
     
     #plot CFSR 'fall warm intrusions extent' as background
     yr = int(year)-1
-    cfsr = np.load(cfsr_path1+'cfsr_warm_freq_'+str(yr))
+    cfsr = np.load(outpath+'cfsr_warm_freq_'+str(yr))
     cfsr_smooth = smooth_data(cfsr,lon_fm,lat_fm,lon_gm,lat_gm)
     
     plot_contour_bg(lon_g,lat_g,cfsr_smooth,data=[myi_smooth,myi_osi_smooth],levels=[.05,.1],colors=['red','purple'], lw=[3,3], \
                  labels=['neXtSIM MYI extent','OSI-SAF MYI extent'],bg_label='warm instrusions freq',outname=outpath_plots+'it_contour_bg_cfsr_'+year+'.png')
 
 
+    #checking charasteristicns of the difference areas
+    #are they more/less ridges, have more/less snow, more/less warm air intrusions?
+    nph = lat_gm > 88. #NP hole
+    mask = ((myi_smooth>.05) & (myi_osi_smooth<.1) & ~nph) | ((myi_smooth<.05) & (myi_osi_smooth>.1) & ~nph) 
+    rr_diff = np.mean(rr_smooth[mask])
+    snow_diff = np.mean(snow_smooth[mask])
+    warm_diff = np.mean(cfsr_smooth[mask])
+    
+    ##checking
+    #tmp = np.ma.array(rr_smooth,mask=~mask)
+    #plot_pcolormesh(lon_g,lat_g,tmp,'test.png')
+    #exit()
+    
+    ridge_bias.append(rr_diff)
+    snow_bias.append(snow_diff)
+    warm_bias.append(warm_diff)
+    dates.append(date)
 
-    ##maps of snow and ridge ratio
-    #figname = outpath_plots+'snow_'+year+'.png'
-    #nb.plot_var('Snow',figname=figname,clim=[0,1])
-    ##for time series of mean snow depth in the areas not classified as MYI in OSI-SAF
-    #snow = nb.get_var('Snow')
-    #diff_mask = np.where(it_diff_cumul>0,1,0)
-    #snow_bias.append(np.mean(snow*diff_mask))
-    #dates.append(date)
-    #print(np.mean(snow*diff_mask))
-    
-    ##also save the difference area!!!!
-    #ea = nb.get_var('Element_area')
-    #area = np.sum(diff_mask*ea)/1e9/1e3
-    #area_bias.append(area)
-    
-    #figname = outpath_plots+'ridges_'+year+'.png'
-    #nb.plot_var('Ridge_ratio',figname=figname,clim=[0,1])
-    ##for time series of mean ridge ratio in the areas not classified as MYI in OSI-SAF
-    #rr = nb.get_var('Ridge_ratio')
-    #ridge_bias.append(np.mean(rr*diff_mask))
-    #print(np.mean(rr*diff_mask))
-    
-    ##maps of ice age
-    #age = nb.get_var('Age_d')
-    #aoy = age/60/60/24/365
-    #nb.add_var('Age_d_year', f, aoy)
-    #figname = outpath_plots+'age_'+year+'.png'
-    #nb.plot_var('Age_d_year',figname=figname,clim=[0,6])
-    
-    #age_bin = np.where(aoy>1.33,1,0)
-    #age_diff = age_bin - myi_osi_cumul
-    #age_diff = np.where(landmask,0,age_diff)
-    #nb.add_var('Age_diff', f, age_diff)
-    #figname = outpath_plots+'age_diff'+year+'.png'
-    #nb.plot_var('Age_diff',cmap='bwr',figname=figname,clim=[-1,1])
 
-##save for time series    
-#np.save(outpath+'snow_bias',np.array(snow_bias))   
-#np.save(outpath+'ridge_bias',np.array(ridge_bias))
-#np.save(outpath+'area_bias',np.array(area_bias))
-#np.save(outpath+'dates_bias',np.array(dates))
+#save for time series    
+np.save(outpath+'snow_bias',np.array(snow_bias))   
+np.save(outpath+'ridge_bias',np.array(ridge_bias))
+np.save(outpath+'warm_bias',np.array(warm_bias))
+np.save(outpath+'dates_bias',np.array(dates))
 
 ##load
 #dates = np.load(outpath+'dates_bias.npy')
 #snow_bias = np.load(outpath+'snow_bias.npy')
 #ridge_bias = np.load(outpath+'ridge_bias.npy')
-#area_bias = np.load(outpath+'area_bias.npy')
+#warm_bias = np.load(outpath+'warm_bias.npy')
 
 
 #df = pd.DataFrame({ 'mean snow depth' : snow_bias,
                     #'mean ridge ratio' : ridge_bias,
-                    #'diff area size' : area_bias/10}, index=dates)
+                    #'mean warm e. freq.' : warm_bias}, index=dates)
 
 #fig2 = df.plot().get_figure()
 #fig2.savefig(outpath_plots+'bias_test.png')

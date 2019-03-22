@@ -1,0 +1,52 @@
+
+
+1.pynextsim container was created as instructed by Anton
+
+2.use by running docker start -i pynextsim
+
+This will start an image as a user 'sim'. Sim has same user id as polona!!!
+
+3.All 'private' scripts are available from src folder as mounted by:
+../nextsim-env/machines/canberra/build_nextsim_tools_container.sh
+
+-v /home/polona/src/nextsim_age:/home/sim/nextsim_age \
+
+4. All changes relevant to everybody should be recoreded in the nextsim-tool git repository
+    -create an issue online
+    -pull the newest code
+
+cd nextsim-tools/
+git branch
+git checkout master
+git pull
+
+    -fix the code in a text editor
+    
+gedit python/pynextsim/nextsim_options.py&
+gedit python/pynextsim/nextsim_bin.py &
+
+    -check if it works for you
+
+docker start -i pynextsim
+
+    -make new branch with that isse number
+
+git checkout -b issue63-mesh-path
+git commit -m 'Fix mesh path' .
+git push --set-upstream origin issue63-mesh-path
+
+    -assign reviewers online
+
+    
+5. if thigs go wrong (inresponsive container)
+try:
+docker stop
+
+try killing processes:
+ps -ef |grep docker
+sudo kill -9 process-number
+
+recreate the container:
+-navigate to src/nextsim-tools
+and run the script:
+../nextsim-env/machines/canberra/build_nextsim_tools_container.sh

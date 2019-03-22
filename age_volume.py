@@ -1,9 +1,12 @@
 import numpy as np
 import pandas as pd
 from glob import glob
+from netCDF4 import Dataset
 from datetime import datetime, timedelta
 from pynextsim.nextsim_bin import NextsimBin
 import matplotlib.pyplot as plt
+
+from age_func import *
 
 ##new simulations 
 #cd data/run04_sept
@@ -36,38 +39,46 @@ for i in range(0,len(year)):
     volume.append(vol[i])
 
 #model data
-fl = sorted(glob(inpath+'field*0915*T000000Z.bin'))
+#mask out the region with thick/immobile/old ice at the end of the run
+fn = inpath+'Moorings.nc.~7~'
+f = Dataset(fn)
+lons = f.variables['longitude'][:]
+lats = f.variables['latitude'][:]
+age_mask = get_poly_mask(lons,lats)
+
+fl = sorted(glob(inpath+'Moorings.nc.~*'))
 print(fl)
-for f in fl:
+for fn in fl:
+    print(fn)
+    f = Dataset(fn)
+    sit = f.variables['sit'][:]
     
-    tmp = f.split('_')[-1].split('T')[0]
-    date = datetime.strptime(tmp, "%Y%m%d")
-    print(date)
+    #mask with the age_mask
+    age_mask_tm = np.zeros_like(sit)
+    for i in range(0,sit.shape[0]):
+        age_mask_tm[i,:,:]=age_mask
+    sit = sit*age_mask_tm/1000               #convert from m to km
+    vol = np.sum(np.sum(sit*100,axis=1),axis=1)/1e3         #sit is effective sea ice thickness - thickness*concentration
 
-    #neXtSIM data
-    nb = NextsimBin(f)
-    #ic = nb.get_var('Concentration')
-    it = nb.get_var('Thickness')
-    ea = nb.get_var('Element_area')
-    sia = nb.get_var('Age_d')/60/60/24/365          #from seconds to years
-    
-    #mask out the ice that older than run-1 year
-    mask=sia>date.year-1996
-    mask=sia>7
-    it = np.ma.array(it,mask=mask)
-    vol = np.sum(it*ea)/1e9/1e3                               #sit is effective sea ice thickness - thickness*concentration
+    #store date for timeseries
+    time = f.variables['time'][:]   #days since 1900-01-01 00:00:00
+    base = datetime(1900,1,1)
+    dt = np.array([base + timedelta(days=i) for i in time])
+    print(dt[0])
+    print(dt[-1])
 
-    volume_model.append(vol)
-    dates_model.append(date)
-
+    volume_model.extend(vol)
+    dates_model.extend(dt)
+    #print(volume_model)
+    #exit()
 
 #save data
 outfile = outpath+'volume_ts' 
-np.savez(outfile, dates = np.array(dates_model), vm = np.array(volume_model) )
+np.savez(outfile, dt = np.array(dates_model), vm = np.array(volume_model) )
 
 #load data
 container = np.load(outpath+'volume_ts.npz')
-dates_model = container['dates']
+dates_model = container['dt']
 volume_model = container['vm']
 
 #import to pandas and plot

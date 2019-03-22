@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import regionmask
 import cartopy
 import cartopy.crs as ccrs
 import pyresample as pr
@@ -107,8 +108,86 @@ def smooth_data(data,lon,lat,coarse_lon,coarse_lat):
     #plot_pcolormesh(lon_g,lat_g,myi_smooth,'test2.png',vmin=0,vmax=1,label='MYI fraction')
     #plot_contour(lon_g,lat_g,myi_smooth,'test3.png',levels=[.1], lw=[10], label='MYI extent')
 
-    
     return(data_smooth)
+
+def regrid_data(data,inlon,inlat,outlon,outlat):    
+    #regrid to equally spaced grid in latlon - otherwise there will be problems with cyclic point in contour plots
+    orig_def = pr.geometry.SwathDefinition(lons=inlon, lats=inlat)
+    targ_def = pr.geometry.SwathDefinition(lons=outlon, lats=outlat)
+    
+    data = pr.kd_tree.resample_nearest(orig_def, data, targ_def, radius_of_influence=50000, fill_value=0)
+    #fill all nans with 0 >> closed contours
+    data = np.nan_to_num(data)
+    
+    return(data)
+
+def get_poly_mask(lons,lats):
+    #create a geographical polygon for the Central Arctic (without the narrow band off the CAA)
+    #https://regionmask.readthedocs.io/en/stable/_static/notebooks/create_own_regions.html
+    #make two masks - one for W and one for E Arctic
+    #regionmask does not handle well the circular polygons around the NP
+    lon360 = np.where(lons<0,360+lons,lons)
+    #print(lon360)
+
+    #i,j coordinates of corner points can be found by exploring display in ncview
+    #W Arctic
+    poly1 = []
+    pt = [360,90];poly1.append(pt)
+    pt = [360,lats[273,115]];poly1.append(pt)
+    pt = [lon360[273,115],lats[273,115]];poly1.append(pt)
+    pt = [lon360[235,136],lats[235,136]];poly1.append(pt)
+    pt = [lon360[194,143],lats[194,143]];poly1.append(pt)
+    pt = [lon360[157,152],lats[157,152]];poly1.append(pt)
+    pt = [lon360[113,170],lats[113,170]];poly1.append(pt)
+    pt = [lon360[89,157],lats[89,157]];poly1.append(pt)
+    pt = [lon360[29,123],lats[29,123]];poly1.append(pt)
+    pt = [lon360[3,194],lats[3,194]];poly1.append(pt)
+    pt = [lon360[3,344],lats[3,344]];poly1.append(pt)
+    pt = [180,65];poly1.append(pt)
+    pt = [180,90];poly1.append(pt)
+    pt = [270,90];poly1.append(pt)
+    pt = [360,90];poly1.append(pt)
+    #print(poly1)
+
+    #E Arctic
+    poly2 = []
+    pt = [0,90];poly2.append(pt)
+    pt = [90,90];poly2.append(pt)
+    pt = [180,90];poly2.append(pt)
+    pt = [180,65];poly2.append(pt)
+    pt = [lon360[135,386],lats[135,386]];poly2.append(pt)
+    pt = [lon360[238,390],lats[238,390]];poly2.append(pt)
+    pt = [lon360[310,344],lats[310,344]];poly2.append(pt)
+    pt = [lon360[449,301],lats[449,301]];poly2.append(pt)
+    pt = [lon360[350,122],lats[350,122]];poly2.append(pt)
+    pt = [0,lats[273,115]];poly2.append(pt)
+    pt = [0,90];poly2.append(pt)
+    #print(poly2)
+
+    numbers = [0, 1]
+    names = ['Arctic_west', 'Arctic_east']
+    abbrevs = ['Aw', 'Ae']
+    Arctic_mask = regionmask.Regions_cls('Arctic_mask', numbers, names, abbrevs, [poly1, poly2])
+
+    ##Plot polygons in Mercator projection
+    #ax=Arctic_mask.plot()
+    #ax.set_extent([-180, 180, 45, 90], ccrs.PlateCarree())
+    #plt.show()
+
+    #Make raster
+    mask = Arctic_mask.mask(lons, lats, wrap_lon=True)
+    #Merge mask
+    mask = np.where(mask>=0,1,0)
+    # pcolormesh does not handle NaNs, requires masked array
+    age_mask = np.ma.masked_invalid(mask)
+    
+    #Plot mask
+    outpath_plots = 'plots/run04/'
+    outname = outpath_plots+'age_mask.png'
+    plot_pcolormesh(lons,lats,age_mask,outname,cmap='viridis',label='Central Arctic Mask=1')
+    exit()
+    
+    return(age_mask)
 
 
 #from pynextsim.projection_info import ProjectionInfo

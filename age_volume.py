@@ -15,6 +15,7 @@ from age_func import *
 
 inpath_ps = 'data/'
 inpath = '/input_obs_data/polona/FRASIL/age_datamor_long/'
+inpath = 'data/'
 outpath = 'data/'
 outpath_plots = 'plots/'
 

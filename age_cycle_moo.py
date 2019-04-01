@@ -11,7 +11,7 @@ from pynextsim.nextsim_bin import NextsimBin
 from age_func import *
 
 #seasonal cycle of ice type and ice age (detectable and volumetric)
-inpath = '/input_obs_data/polona/FRASIL/age_datamor_long/'
+inpath = 'data/'
 outpath = 'data/'
 outpath_plots = 'plots/'
 

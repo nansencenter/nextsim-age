@@ -9,7 +9,7 @@ from pyproj import Proj, transform
 
 
 
-def plot_pcolormesh(lons,lats,var,outname,vmin=None,vmax=None,cmap='jet',label='Variable'):
+def plot_pcolormesh(lons,lats,var,outname,vmin=0,vmax=1,cmap='jet',label='Variable'):
     # create the figure panel 
     fig = plt.figure(figsize=(10,10), facecolor='w')
 
@@ -32,7 +32,8 @@ def plot_pcolormesh(lons,lats,var,outname,vmin=None,vmax=None,cmap='jet',label='
     # the third makes the colourbar, and the final adds the label
     fig.subplots_adjust(bottom=0.15)
     cbar_ax = fig.add_axes([0.2, 0.1, 0.625, 0.033])
-    cbar = plt.colorbar(pp, cax=cbar_ax, orientation='horizontal', ticks=np.arange(0,1.1,0.1))
+    stp = (vmax-vmin)/10.
+    cbar = plt.colorbar(pp, cax=cbar_ax, orientation='horizontal', ticks=np.arange(vmin,vmax+stp,stp))
     cbar.set_label(label=label,size=14, family='serif')
     
     plt.savefig(outname,bbox_inches='tight')
@@ -92,16 +93,25 @@ def plot_contour_bg(lons,lats,bg,data,levels=[.15],colors=['purple'],lw=[1.],lab
     plt.savefig(outname,bbox_inches='tight')
     
 def smooth_data(data,lon,lat,coarse_lon,coarse_lat):    
-    #smoothen the data for nicer contours
-    data = ndimage.gaussian_filter(data, sigma=2, order=0)
+    #smoothen the data for nicer contours with a lowpass filter
+    data = ndimage.gaussian_filter(data, 3)    #sigma
+    
+    
     #regrid to equally spaced grid in latlon - otherwise there will be problems with cyclic point in contour plots
     orig_def = pr.geometry.SwathDefinition(lons=lon, lats=lat)
     targ_def = pr.geometry.SwathDefinition(lons=coarse_lon, lats=coarse_lat)
-    coarse_def = pr.geometry.SwathDefinition(lons=coarse_lon[::5,::5], lats=coarse_lat[::5,::5])
-    data_coarse = pr.kd_tree.resample_nearest(orig_def, data, coarse_def, radius_of_influence=50000, fill_value=0)
-    #fill all nans with 0 >> closed contours
-    data_coarse = np.nan_to_num(data_coarse)
-    data_smooth = pr.kd_tree.resample_gauss(coarse_def, data_coarse, targ_def, radius_of_influence=500000, neighbours=10, sigmas=250000, fill_value=0)
+    #coarse_def = pr.geometry.SwathDefinition(lons=coarse_lon[::5,::5], lats=coarse_lat[::5,::5])
+    #data_coarse = pr.kd_tree.resample_nearest(orig_def, data, coarse_def, radius_of_influence=50000, fill_value=0)
+    ##fill all nans with 0 >> closed contours
+    #data_coarse = np.nan_to_num(data_coarse)
+    data_smooth = pr.kd_tree.resample_gauss(orig_def, data, targ_def, radius_of_influence=500000, neighbours=10, sigmas=250000, fill_value=0)
+    #data_smooth = pr.kd_tree.resample_nearest(coarse_def, data_coarse, targ_def, radius_of_influence=500000, fill_value=0)
+    #wf = lambda r: 1
+    #data_smooth = pr.kd_tree.resample_custom(coarse_def, data_coarse, targ_def, radius_of_influence=100000, weight_funcs=wf)
+    
+    
+    data_smooth = np.nan_to_num(data_smooth)
+    
     
     #plot_pcolormesh(lon,lat,myi,'test.png',vmin=0,vmax=1,label='MYI fraction') 
     #plot_pcolormesh(lon_g[::5],lat_g[::5],myi_coarse,'test1.png',vmin=0,vmax=1,label='MYI fraction')    
@@ -135,10 +145,16 @@ def get_poly_mask(lons,lats):
     pt = [360,90];poly1.append(pt)
     pt = [360,lats[273,115]];poly1.append(pt)
     pt = [lon360[273,115],lats[273,115]];poly1.append(pt)
-    pt = [lon360[235,136],lats[235,136]];poly1.append(pt)
-    pt = [lon360[194,143],lats[194,143]];poly1.append(pt)
-    pt = [lon360[157,152],lats[157,152]];poly1.append(pt)
-    pt = [lon360[113,170],lats[113,170]];poly1.append(pt)
+    
+    pt = [lon360[260,128],lats[260,128]];poly1.append(pt)
+    pt = [lon360[239,136],lats[239,136]];poly1.append(pt)
+    pt = [lon360[228,145],lats[228,145]];poly1.append(pt)
+    pt = [lon360[210,148],lats[210,148]];poly1.append(pt)
+    
+    pt = [lon360[194,147],lats[194,147]];poly1.append(pt)
+    pt = [lon360[157,156],lats[157,156]];poly1.append(pt)
+    pt = [lon360[113,174],lats[113,174]];poly1.append(pt)
+    
     pt = [lon360[89,157],lats[89,157]];poly1.append(pt)
     pt = [lon360[29,123],lats[29,123]];poly1.append(pt)
     pt = [lon360[3,194],lats[3,194]];poly1.append(pt)
@@ -181,11 +197,11 @@ def get_poly_mask(lons,lats):
     # pcolormesh does not handle NaNs, requires masked array
     age_mask = np.ma.masked_invalid(mask)
     
-    #Plot mask
-    outpath_plots = 'plots/run04/'
-    outname = outpath_plots+'age_mask.png'
-    plot_pcolormesh(lons,lats,age_mask,outname,cmap='viridis',label='Central Arctic Mask=1')
-    exit()
+    ##Plot mask
+    #outpath_plots = 'plots/run04/'
+    #outname = outpath_plots+'age_mask.png'
+    #plot_pcolormesh(lons,lats,age_mask,outname,cmap='viridis',label='Central Arctic Mask=1')
+    #exit()
     
     return(age_mask)
 

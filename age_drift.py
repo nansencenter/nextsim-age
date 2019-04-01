@@ -9,33 +9,35 @@ from age_func import *
 
 #cdo mergetime -selmon,1 -selday,1,2,3 Moorings4.nc -selmon,1 -selday,1,2,3 Moorings5.nc -selmon,1 -selday,1,2,3 Moorings6.nc ~/data/merged_Jan.nc
 #scp ~/data/merged_Jan.nc johansen:/Data/sim/data/FRASIL/run01_moorings/
-
-
-#cdo mergetime -selyear,2007 -selmon,1 Moorings.nc.~3~   ~/data/run04_Jan2007.nc
-#cdo mergetime -selyear,2008 -selmon,1 Moorings.nc.~3~   ~/data/run04_Jan2008.nc
-
-#cdo mergetime -selyear,2009 -selmon,1 Moorings.nc.~4~   ~/data/run04_Jan2009.nc
-#cdo mergetime -selyear,2010 -selmon,1 Moorings.nc.~4~   ~/data/run04_Jan2010.nc
-
-#cdo mergetime -selyear,2011 -selmon,1 Moorings.nc.~5~   ~/data/run04_Jan2011.nc
-#cdo mergetime -selyear,2012 -selmon,1 Moorings.nc.~5~   ~/data/run04_Jan2012.nc
-
-#cdo mergetime -selyear,2013 -selmon,1 Moorings.nc   ~/data/run04_Jan2013.nc
-#cdo mergetime -selyear,2014 -selmon,1 Moorings.nc   ~/data/run04_Jan2014.nc
-#cdo mergetime -selyear,2015 -selmon,1 Moorings.nc   ~/data/run04_Jan2015.nc
-
-
 #scp ~/data/run04_Jan*.nc johansen:/Data/sim/data/FRASIL/
+
+
+
+#cdo mergetime -selyear,2007 -selmon,1 ~/src/nextsim_age/data/Moorings.nc.~4~   ~/src/nextsim_age/data/run04_Jan2007.nc
+
+#cdo mergetime -selyear,2008 -selmon,1 ~/src/nextsim_age/data/Moorings.nc.~5~   ~/src/nextsim_age/data/run04_Jan2008.nc
+#cdo mergetime -selyear,2009 -selmon,1 ~/src/nextsim_age/data/Moorings.nc.~5~   ~/src/nextsim_age/data/run04_Jan2009.nc
+#cdo mergetime -selyear,2010 -selmon,1 ~/src/nextsim_age/data/Moorings.nc.~5~   ~/src/nextsim_age/data/run04_Jan2010.nc
+
+#cdo mergetime -selyear,2011 -selmon,1 ~/src/nextsim_age/data/Moorings.nc.~6~   ~/src/nextsim_age/data/run04_Jan2011.nc
+#cdo mergetime -selyear,2012 -selmon,1 ~/src/nextsim_age/data/Moorings.nc.~6~   ~/src/nextsim_age/data/run04_Jan2012.nc
+#cdo mergetime -selyear,2013 -selmon,1 ~/src/nextsim_age/data/Moorings.nc.~6~   ~/src/nextsim_age/data/run04_Jan2013.nc
+
+#cdo mergetime -selyear,2014 -selmon,1 ~/src/nextsim_age/data/Moorings.nc.~7~   ~/src/nextsim_age/data/run04_Jan2014.nc
+#cdo mergetime -selyear,2015 -selmon,1 ~/src/nextsim_age/data/Moorings.nc.~7~   ~/src/nextsim_age/data/run04_Jan2015.nc
+
+
 
 
 
 #make PDF of Jan 1-2 average velocities and compare to OSI-SAF (2009-2016)
 inpath = '/input_obs_data/data/FRASIL/'
+inpath = 'data/'
 icosi_path = '/input_obs_data/data/OSISAF_ice_conc/polstere/'
 drosi_path = '/input_obs_data/data/OSISAF_ice_drift/'
 outpath_plots = 'plots/'
 
-years = range(2007,2014)
+years = range(2007,2016)
 #years = range(2007,2008)
 
 slist = []
@@ -51,6 +53,8 @@ fn = inpath+'run04_Jan2007.nc'
 f = Dataset(fn)
 lon_m = f.variables['longitude'][:]
 lat_m = f.variables['latitude'][:]
+
+age_mask_m = get_poly_mask(lon_m,lat_m)
 
 #get the OSI-SAF grid
 fl = sorted(glob(drosi_path+'2008/01/*01031200.nc'))
@@ -68,11 +72,14 @@ lon = f.variables['lon'][:]
 cum_speed = np.zeros_like(lat)
 cum_speed_osi = np.zeros_like(lat)
 
-
 #get all the infromation for the re-gridding
 orig_def = pyresample.geometry.SwathDefinition(lons=lon_m, lats=lat_m)
 targ_def = pyresample.geometry.SwathDefinition(lons=lon, lats=lat)
 coar_def = pyresample.geometry.SwathDefinition(lons=lon[::3,::3], lats=lat[::3,::3])  #take every 3rd grid cell to get ~140km large grid cells
+
+
+age_mask = pyresample.kd_tree.resample_nearest(orig_def, age_mask_m, \
+            targ_def, radius_of_influence=10000, fill_value=None)
 
 o=0
 for yr in years:
@@ -135,24 +142,24 @@ for yr in years:
         
         
         #match the area and dump the data
-        #no MIZ and just best OSI-SAF quality
-        mask = (sic_gauss<.15) | (sf<30)
+        #no MIZ and NP hole/landmask (use sf<30 for just best OSI-SAF quality)
+        mask = (sic_gauss<.15) | (sf<30) | (age_mask==0)
         slist_gauss.extend(speed_gauss[~mask].flatten())
         
-        mask_uni = (sic_uniform<.15) | (sf<30)
+        mask_uni = (sic_uniform<.15) | (sf<30) | (age_mask==0)
         slist_uniform.extend(speed_uniform[~mask_uni].flatten())
         
-        mask_uni = (sic_uniform<.15) | (sf<30)
+        mask_uni = (sic_uniform<.15) | (sf<30) | (age_mask==0)
         slist_coarse.extend(speed_coarse[~mask_uni].flatten())
         
-        #mask = (sic_nearest<.15) | (sf<20)
+        #mask = (sic_nearest<.15) | (sf<30)
         #slist.extend(speed_nearest[~mask].flatten())
         
         slist_osi.extend(speed_osi[~mask_uni].flatten())
 
         sf_m = pyresample.kd_tree.resample_nearest(targ_def, sf, \
             orig_def, radius_of_influence=30000, fill_value=None)
-        mask = (meanic<.15) | (sf_m<20)
+        mask = (meanic<.15) | (sf_m<20) | (age_mask_m==0)
         slist_full.extend(speed[~mask].flatten())
         
         
@@ -166,7 +173,7 @@ for yr in years:
         o = o+1
 
 #plot a PDF
-bl = np.arange(0,.4,.01)
+bl = np.arange(0,.41,.01)
 #n, bins, patches = plt.hist(slist, bl, normed=True, histtype='step', color='m', alpha=.8, label='neXtSIM', lw = 3)
 #n, bins, patches = plt.hist(slist_gauss, bl, normed=True, histtype='step', color='r', alpha=.8, label='neXtSIM', lw = 3)
 n, bins, patches = plt.hist(np.clip(slist_full, bl[0], bl[-1]), bl, normed=True, histtype='step', color='darkred', alpha=.8, label='neXtSIM fine', lw = 2)
@@ -177,12 +184,12 @@ n, bins, patches = plt.hist(np.clip(slist_osi, bl[0], bl[-1]), bl, normed=True, 
 
 plt.xlabel('Speed (m/s)')
 plt.ylabel('Probability')
-plt.title('Probability distribution of mean 2-day speed \nfor January 2007-2013')
+plt.title('Probability distribution of mean 2-day speed \nfor January 2007-2015')
 #plt.text(60, .025, r'$\mu=100,\ \sigma=15$')
 #plt.axis([40, 160, 0, 0.03])
 plt.legend(loc='upper right',prop={'size':16})
 plt.grid(True)
-plt.savefig(outpath_plots+'drift_pdf_run04.png')
+plt.savefig(outpath_plots+'drift_pdf_run04_age_mask.png')
 
 
 
@@ -192,8 +199,8 @@ jan_speed = cum_speed/o
 jan_speed_osi = cum_speed_osi/o
 
 #plot maps
-map_name = outpath_plots+'jan_speed_map.png'
+map_name = outpath_plots+'jan_speed_map_age_mask.png'
 plot_pcolormesh(lon,lat,jan_speed,map_name,vmin=0,vmax=.1,cmap='jet',label='Mean January Speed (m/s)')
 
-map_name = outpath_plots+'jan_speed_map_osi.png'
+map_name = outpath_plots+'jan_speed_map_osi_age_mask.png'
 plot_pcolormesh(lon,lat,jan_speed_osi,map_name,vmin=0,vmax=.1,cmap='jet',label='Mean January Speed (m/s)')

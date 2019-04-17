@@ -1,179 +1,169 @@
-import numpy as np
+import scipy.io
 from glob import glob
 from netCDF4 import Dataset
-from datetime import datetime,timedelta
+from datetime import datetime
+import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
-from pynextsim.nextsim_bin import NextsimBin
-
-
 from age_func import *
 
-#-------------------------------------------------------------------
-#inpath = '/input_obs_data/FRASIL/run01_part3/nextsim_outputs/'
-
-##to get all the files in one folder creat symbolic links as sim data user (symlinks dont realyl work accross the users!)
-#ulimit -s 65536
-#mkdir data/run01
-#cd data/run01
-#ln -s /input_obs_data/data/FRASIL/run01_part1/nextsim_outputs/*0101T000000Z* .   #and same for all the other parts
-
-##new simulations (with new dynamical core) is called run04
-##best comparision point might be April and not January (end of winter/growth, most ice, least motion)
-#cd data/run04
-#ln -s /input_obs_data/einar/age_datarmor/*0401T000000Z* .
-
-
-###scp just 2015 files!!!
-#output older than 2015 can be removed from hexagon!!!
-#then copy next output into part7!!!!
-
-inpath = '/input_obs_data/polona/FRASIL/age_datamor_long/'
 outpath = 'data/outputs/'
-outpath_plots = 'plots/run04/'
+outpath_plots = 'plots/new/'
 
-##get all daily files
-#fl = sorted(glob(inpath+'field*201*04*[0-32]*T000000Z.bin'))
+#also check: http://www.scp.byu.edu/data/Quikscat/iceage_v2/Quikscat_MYFY.html
+#and: http://scp.byu.edu/data/OSCAT/iceage_v2/Oscat_MYFY.html
 
-###mask out the region with thick/immobile/old ice at the end of the run
-#fn = inpath+'Moorings.nc.~7~'
-#f = Dataset(fn)
-#lons = f.variables['longitude'][:]
-#lats = f.variables['latitude'][:]
-#age_mask = get_poly_mask(lons,lats)
+#also use Quickscat MYI fraction (1999-2009)
+#data/sim/data/QUICKSCAT_ice_type/MYIF/
+inpath = '/input_obs_data/data/QUICKSCAT_ice_type/MYIF/'
+#inpath_sir = 'data/QSCAT_BYU/'
 
-##prepare OSI-SAF land and NP hole mask
-##get the land and NP-hole mask (north pole hole got smaller over time!!!)
-#f = Dataset('/input_obs_data/data/OSISAF_ice_conc/polstere/2006_nh_polstere/ice_conc_nh_polstere-100_multi_200604011200.nc')
-#sf = f.variables['status_flag'][0,:,:]
-#osilats = f.variables['lat'][:]
-#osilons = f.variables['lon'][:]
-#landmask = sf==0
+#NSIDC ice age data
+inpath_nsidc = 'data/nsidc/'
 
-##lists to collect the time series
-#dates = []
-#myi_area_l = []; fyi_area_l = []
-#myi_it_l = []; fyi_it_l = []
-#myi_rr_l = []; fyi_rr_l = []
-#myi_sd_l = []; fyi_sd_l = []
+#get model grid from moorings for age mask
+fn = 'data/Moorings.nc.~7~'
+f = Dataset(fn)
+lons = f.variables['longitude'][:]
+lats = f.variables['latitude'][:]
+age_mask = get_poly_mask(lons,lats)
 
-#myi_area_age_l = []
+#get QSCAT grid
+mat = scipy.io.loadmat('/input_obs_data/data/QUICKSCAT_ice_type/QSgrid.mat')
+lat = mat['lat']
+lon = mat['lon']
+print(lon.shape)
+
+#get EASE grid
+fn = inpath_nsidc+'iceage_nh_12.5km_1995.nc'
+f = Dataset(fn)
+lone = f.variables['longitude'][:]
+late = f.variables['latitude'][:]
+
+#landmask
+mat = scipy.io.loadmat('/input_obs_data/data/QUICKSCAT_ice_type/sirareamask.mat')
+am = mat['areamask']
+mat = scipy.io.loadmat('/input_obs_data/data/QUICKSCAT_ice_type/sirlandmask.mat')
+lm = mat['sirlandmask']
+
+lm = am+lm
+print(lm.shape)
+
+fl = sorted(glob(inpath+'**/MYfraction*106.mat'))
+
+myi_qs = []
+dts_qs = []
 
 #for fn in fl:
     #print(fn)
+    #mat = scipy.io.loadmat(fn)
+    #myi = mat['MYIfraction']
+    #myi = myi*np.where(lm>0,1,0)
     
-    ##get date
-    #tmp = fn.split('_')[-1].split('T')[0]
-    #dt = datetime.strptime(tmp, "%Y%m%d")
-    #dates.append(dt)
+    ###Plot data
+    ##outpath_plots = 'plots/new/'
+    ##outname = outpath_plots+'qscat_test.png'
+    ##plot_pcolormesh(lon,lat,myi,outname,cmap='viridis',label='MYI fraction')
+    ##exit()
+    
+    ##regrid and mask
+    #myi_10 = regrid_data(myi,lon,lat,lons,lats)
+    #myi_10 = np.where(myi_10>.3,1,0)
+    #nph = np.where(lats > 88.,0,1)
+    #myi_10 = myi_10*age_mask*nph
+        
+    #myia = np.sum(myi_10*100)/1e3 #10^3 km^2
+    #print(myia)
+    
+    #myi_qs.append(myia)
+    
+    #tmp = fn.split('fraction')[-1].split('.')[0]
+    #date = datetime.strptime(tmp, "%Y%j")
+    #print(date)
+    #dts_qs.append(date)
+    
+    ##Plot data
+    #outpath_plots = 'plots/new/'
+    #outname = outpath_plots+'qscat_'+tmp+'.png'
+    #plot_pcolormesh(lons,lats,myi_10,outname,cmap='viridis',label='MYI QSCAT')
+    ##exit()    
 
-    ##mesh coordinates
-    #nb = NextsimBin(fn)
-    #x,y = nb.get_xy_grids()
-    #lon,lat=nb.mapping(x,y,inverse=True)
+##get BYU QSCAT and OSCAT data
+##netcdf files: ftp://podaac.jpl.nasa.gov/allData/quikscat/preview/L3/byu_scp/sea_ice_age/arctic/v1
+#fl = sorted(glob(inpath_sir+'*.sir'))
+#print(fl)
+#for fn in fl:
+    #print(fn)
+    #sir = read_sir(fn)
+#exit()
 
-    ##get data
-    #sic = nb.get_gridded_vars(['Concentration'],x,y)['Concentration']
-    #sicthin = nb.get_gridded_vars(['Concentration_thin_ice'],x,y)['Concentration_thin_ice']
-    #fyi = nb.get_gridded_vars(['Fyi_fraction'],x,y)['Fyi_fraction']
-    #myi = sic-sicthin-fyi
-    #sd = nb.get_gridded_vars(['Snow'],x,y)['Snow']
-    #rr = nb.get_gridded_vars(['Ridge_ratio'],x,y)['Ridge_ratio']
-    #sit = nb.get_gridded_vars(['Thickness'],x,y)['Thickness']
-    #siad = nb.get_gridded_vars(['Age_d'],x,y)['Age_d']/60/60/24/365          #from seconds to years
+#get ice age from NSIDC
+fl = sorted(glob(inpath_nsidc+'iceage*2005.nc'))
 
-    ##regrid everything to the moorings grid
-    ##should we regrid everything to OSI-SAF grid instead?
-    #sic = regrid_data(sic,lon,lat,lons,lats)
-    #fyi = regrid_data(fyi,lon,lat,lons,lats)
-    #myi = regrid_data(myi,lon,lat,lons,lats)
-    #sd = regrid_data(sd,lon,lat,lons,lats)
-    #rr = regrid_data(rr,lon,lat,lons,lats)
-    #sit = regrid_data(sit,lon,lat,lons,lats)
-    #siad = regrid_data(siad,lon,lat,lons,lats)
-    
-    ##mask with the age_mask and OSI-SAF mask
-    #osi_mask = regrid_data(landmask,osilons,osilats,lons,lats)
-    #mask = age_mask | osi_mask
-    
-    #sic = np.ma.array(sic,mask=mask)
-    #fyi = np.ma.array(fyi,mask=mask)
-    #myi = np.ma.array(myi,mask=mask)
-    #sd = np.ma.array(sd,mask=mask)
-    #rr = np.ma.array(rr,mask=mask)
-    #sit = np.ma.array(sit,mask=mask)
-    #siad = np.ma.array(siad,mask=mask)
-    
-    ##'binaries'
-    #myi_bin = np.where(myi>.5,1,0)
-    #fyi_bin = np.where(fyi>.5,1,0)
-    
-    ##area in km^2!!!
-    #myi_area = np.sum(myi_bin*100*sic)
-    #fyi_area = np.sum(fyi_bin*100*sic)
-    #myi_area_l.append(myi_area); fyi_area_l.append(fyi_area)
-    
-    ##mean sea ice thickness
-    #myi_it = np.mean(myi_bin*sit)
-    #fyi_it = np.mean(fyi_bin*sit)
-    #myi_it_l.append(myi_it); fyi_it_l.append(fyi_it)
-    
-    ##mean ridge ratio
-    #myi_rr = np.mean(myi_bin*rr*sic)
-    #fyi_rr = np.mean(fyi_bin*rr*sic)
-    #myi_rr_l.append(myi_rr); fyi_rr_l.append(fyi_rr)
-    
-    ##mean snow depth
-    #myi_sd = np.mean(myi_bin*sd*sic)
-    #fyi_sd = np.mean(fyi_bin*sd*sic)
-    #myi_sd_l.append(myi_sd); fyi_sd_l.append(fyi_sd)
-    
-    ##classify ice age into year classes and calculate volume
-    ##for reclassifying the age_d into myi
-    ##MYI: age>timedelta(today,15. Sept)
-    #if (dt.month>9) | ((dt.month==9) & (dt.day>15)):
-        #pyr=dt.year
-    #else:
-        #pyr=dt.year-1
-    #diff = (dt-datetime(pyr,9,15)).total_seconds()/60/60/24/356
-    
-    #diff_mask = np.where(siad<diff,0,1)
-    #myi_area_age = np.sum(sic*100*diff_mask)
-    #myi_area_age_l.append(myi_area_age)
-    
-##save ice type data 
-#outfile = outpath+'april_myi' 
-#np.savez(outfile,dates = np.array(dates),myi_area = np.array(myi_area_l), fyi_area = np.array(fyi_area_l), myi_it = np.array(myi_it_l),fyi_it = np.array(fyi_it_l), \
-    #myi_rr = np.array(myi_rr_l), fyi_rr = np.array(fyi_rr_l), myi_sd = np.array(myi_sd_l), fyi_sd = np.array(fyi_sd_l), myi_age =  np.array(myi_area_age_l))    
+myi_nsidc = []
+dts_nsidc = []
 
 
-#load ice type data
-container = np.load(outpath+'april_myi.npz')
+for fn in fl:
+    print(fn)
+    f = Dataset(fn)
+    aosi = f.variables['age_of_sea_ice'][:]
+    #print(aosi.shape)
+    
+    #pick 2nd week of April and convert to MYI
+    wn = int(106/7)
+    mask = (aosi[wn,:,:]>1) & (aosi[wn,:,:]<20)   #value 20 is for the landmask
+    myie = np.where(mask,1,0)
+
+    #Plot data
+    outpath_plots = 'plots/new/'
+    outname = outpath_plots+'nsidc_test.png'
+    field = np.where(aosi[wn,:,:]>10,0,aosi[wn,:,:])
+    plot_pcolormesh(lone,late,field,outname,cmap='viridis',label='ice age',vmin=0,vmax=10)
+    exit()
+
+    #regrid and mask
+    myi_10 = regrid_data(myie,lone,late,lons,lats)
+    #myi_10 = np.where(myi_10>.3,1,0)
+    nph = np.where(lats > 88.,0,1)
+    myi_10 = myi_10*age_mask*nph
+        
+    myia = np.sum(myi_10*100)/1e3 #10^3 km^2
+    print(myia)
+    
+    myi_nsidc.append(myia)
+    
+    yyyy = fn.split('_')[-1].split('.')[0]
+    date = datetime(int(yyyy),4,15)
+    print(date)
+    dts_nsidc.append(date)
+    
+    #Plot data
+    outpath_plots = 'plots/new/'
+    outname = outpath_plots+'nsidc_'+yyyy+'.png'
+    plot_pcolormesh(lons,lats,myi_10,outname,cmap='viridis',label='MYI NSIDC')
+    #exit()    
+
+
+#load ice type data produced by age_maps_cont.py
+container = np.load(outpath+'age_ts.npz')
 dates = container['dates']
-myi_area = container['myi_area']/1e9 #10^3 km^2
-fyi_area = container['fyi_area']/1e9 #10^3 km^2
-myi_it = container['myi_it'];fyi_it = container['fyi_it']
+myi_area = container['myit']/1e3 #10^3 km^2
+myi_age = container['myia']/1e3
+myi_osi = container['myio']/1e3
+myi_it = container['myi_sit'];fyi_it = container['fyi_sit']
 myi_rr = container['myi_rr'];fyi_rr = container['fyi_rr']
 myi_sd = container['myi_sd'];fyi_sd = container['fyi_sd']
-myi_age = container['myi_age']/1e9
+snow_bias = container['sb']
+ridge_bias = container['rb']
+warm_bias = container['wb']
 
-#load OSI-SAF cumulated ice type
-dates_osi_cumul = np.load(outpath+'dates_osi_jan_cumul.npy')-timedelta(hours=12)
-myi_osi_cumul = np.load(outpath+'myi_osi_jan_cumul.npy')/1e3  #10^3 km^2
-
-#import to pandas
-df_osi = pd.DataFrame({ 'MYI area OSI-SAF' : myi_osi_cumul}, index=dates_osi_cumul)
-
-#make winter (January) averages
-dfmon_osi = df_osi.resample('M').mean()
-dfmon_osi_std = df_osi.resample('M').std()
-dfapr_osi = dfmon_osi.loc[dfmon_osi.index.month==4]
-dfapr_osi_std = dfmon_osi_std.loc[dfmon_osi_std.index.month==4]
-
+myi_osi = np.ma.array(myi_osi, mask=myi_osi==0.)    #mask out dummy values before 2005
 
 #import to pandas
-df = pd.DataFrame({ 'MYI area' : myi_area,
+df = pd.DataFrame({ 'MYI area OSI-SAF' : myi_osi,
+                    'MYI area' : myi_area,
                     'MYI area (age)' : myi_age,
                     'MYI ice thickness' : myi_it,
                     'FYI ice thickness' : fyi_it,
@@ -184,60 +174,75 @@ df = pd.DataFrame({ 'MYI area' : myi_area,
 
 #make winter (April) averages
 dfmon = df.resample('M').mean()
+dfmon_std = df.resample('M').std()
 dfapr = dfmon.loc[dfmon.index.month==4]
+dfapr_std = dfmon_std.loc[dfmon.index.month==4]
+
+print(dfapr)
+
+#QuickSCAT
+df_qs = pd.DataFrame({'MYI area QSCAT' : myi_qs}, index=dts_qs)
+dfmon_qs = df_qs.resample('M').mean()
+dfmon_qs_std = df_qs.resample('M').std()
+dfapr_qs = dfmon_qs.loc[dfmon_qs.index.month==4]
+dfapr_qs_std = dfmon_qs_std.loc[dfmon_qs.index.month==4]
+print(dfapr_qs)
+
+#NSIDC
+df_nsidc = pd.DataFrame({'MYI area NSIDC' : myi_nsidc}, index=dts_nsidc)
+dfmon_nsidc = df_nsidc.resample('M').mean()
+dfmon_nsidc_std = df_nsidc.resample('M').std()
+dfapr_nsidc = dfmon_nsidc.loc[dfmon_nsidc.index.month==4]
+dfapr_nsidc_std = dfmon_nsidc_std.loc[dfmon_nsidc.index.month==4]
+print(dfapr_nsidc)
+
+dfapr_sat = dfapr_qs.join(dfapr_nsidc, how='outer')
+dfapr_sat_std = dfapr_qs_std.join(dfapr_nsidc_std, how='outer')
 
 
-#join obs and simulations into one table
-result = dfapr_osi.join(dfapr, how='outer')
+result = dfapr_sat.join(dfapr, how='outer')
+result_std = dfapr_sat_std.join(dfapr_std, how='outer')
+
 print(result)
 
+start = dfapr.iloc[:,3:].index[0]
+end = dfapr.iloc[:,3:].index[-1]
 
-
-start = result.iloc[:,3:].index[2]
-end = result.iloc[:,3:].index[-1]
-
-fig, axes = plt.subplots(nrows=4, ncols=1,figsize=(10,8))
+fig, axes = plt.subplots(nrows=4, ncols=1,figsize=(8,8))
 
 #area
-ax = result.iloc[:,:3].plot(ax=axes[0],xlim=(start,end),yerr=dfapr_osi_std,title='1. April ice type',lw=2,color = ['royalblue','purple', 'salmon'])
+ax = result.iloc[:,:5].plot(ax=axes[0],xlim=(start,end),yerr=result_std,title='April ice type/age',lw=2,color = ['darkblue','royalblue','k','purple', 'salmon'])
 ax.set_ylabel(r'Area (10$^3$ km$^2$)')
 
 #thickness
-bx = result.iloc[:,3:5].plot(ax=axes[1],xlim=(start,end),yerr=dfapr_osi_std,lw=2,color = ['purple', 'salmon'])
+bx = result.iloc[:,5:7].plot(ax=axes[1],xlim=(start,end),yerr=result_std,lw=2,color = ['purple', 'salmon'])
 bx.set_ylabel(r'Thickness (m)')
 
 #ridge fraction
-cx = result.iloc[:,5:7].plot(ax=axes[2],xlim=(start,end),yerr=dfapr_osi_std,lw=2,color = ['purple', 'salmon'])
+cx = result.iloc[:,7:9].plot(ax=axes[2],xlim=(start,end),yerr=result_std,lw=2,color = ['purple', 'salmon'])
 cx.set_ylabel(r'Fraction')
 
 #snow depth
-dx = result.iloc[:,7:].plot(ax=axes[3],xlim=(start,end),yerr=dfapr_osi_std,lw=2,color = ['purple', 'salmon'])
+dx = result.iloc[:,9:].plot(ax=axes[3],xlim=(start,end),yerr=result_std,lw=2,color = ['purple', 'salmon'])
 dx.set_ylabel(r'Depth (m)')
 
 
 fig.savefig(outpath_plots+'osi.png',bbox_inches='tight')
 
 ##make scatter plots of area difference vs. ridges, snow and warm intrusions
-##load
-#dates = np.load(outpath+'dates_bias.npy')
-#snow_bias = np.load(outpath+'snow_bias.npy')
-#ridge_bias = np.load(outpath+'ridge_bias.npy')
-#warm_bias = np.load(outpath+'warm_bias.npy')
+diff = myi_age-myi_osi
 
-#diff = myi_area[4:]-myi_osi_cumul[:10]
+fig, ax = plt.subplots(nrows=1, ncols=3, figsize=(12,4))
+ax[0].scatter(diff, ridge_bias)
+ax[0].set_title('Ridges')
+ax[1].scatter(diff, snow_bias)
+ax[1].set_title('Snow')
+ax[2].scatter(diff, warm_bias)
+ax[2].set_title('Crust')
 
+#aa.set_xlabel(r'Area difference (10$^3$ km$^2$)')
 
-#fig, ax = plt.subplots(nrows=1, ncols=3, figsize=(12,4))
-#ax[0].scatter(diff, ridge_bias)
-#ax[0].set_title('Ridges')
-#ax[1].scatter(diff, snow_bias)
-#ax[1].set_title('Snow')
-#ax[2].scatter(diff, warm_bias)
-#ax[2].set_title('Crust')
-
-##aa.set_xlabel(r'Area difference (10$^3$ km$^2$)')
-
-#fig.savefig(outpath_plots+'scatter.png',bbox_inches='tight')
+fig.savefig(outpath_plots+'scatter_rest.png',bbox_inches='tight')
 
 
 

@@ -3,21 +3,18 @@ from ftplib import FTP
 from glob import glob
 import os
 
-ftp = FTP('osisaf.met.no')
+ftp = FTP('ftp.scp.byu.edu')
 ftp.login('anonymous','polona.itkin@nersc.no')
 #sea ice concentration
-ftp.cwd('archive/ice/conc/2015/02/')
-os.chdir('/input_obs_data/data/OSISAF_ice_conc/polstere/2015_nh_polstere/')
+ftp.cwd('data/qscat/iceage_v2/1999/')
+os.chdir('/input_obs_data/data/QSCAT_BYU/1999/')
 filenames = ftp.nlst() # get filenames within the directory
-#print filenames
+print(filenames)
 
 for filename in filenames:
-    if filename.split('.')[-1]!='nc':continue           #download just nc files
-    if filename.split('_')[2]!='nh':continue            #download just Northern H. files
-    if filename.split('_')[3]!='polstere-100':continue  #download just the polstere grid files
-    local_filename = filename
-    #print(filename); exit()
-    file = open(local_filename, 'wb')
+    if filename.split('.')[-1]!='gz':continue           #download just mat files
+    #local_filename = filename
+    file = open(filename, 'wb')
     ftp.retrbinary('RETR '+ filename, file.write)
 
     file.close()

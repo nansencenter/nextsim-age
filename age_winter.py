@@ -43,7 +43,7 @@ lat_osi = f.variables['lat'][:]
 lon_osi = f.variables['lon'][:]
 
 #get all daily files
-fl = sorted(glob(inpath+'field*0415T000000Z.bin'))
+fl = sorted(glob(inpath+'field*15T000000Z.bin'))
 
 myi_type_list = []
 myi_age_list = []
@@ -68,7 +68,9 @@ for f in fl:
     stamp = datetime.strftime(date, "%Y%m%d")+'1200'
     print(date)
     year = str(date.year)
-    if int(year)<2005: continue
+    mon = date.strftime("%m")
+    if int(year)<2008: continue
+    if (int(mon)>4) and (int(mon)<12): continue
     
     #neXtSIM grid
     nb = NextsimBin(f)
@@ -94,13 +96,8 @@ for f in fl:
     #MYI from type
     myi = ic-icthin-fyi
     
-    ##Plot data
-    #outname = outpath_plots+'nextsim_myi_test.png'
-    #plot_pcolormesh(lon,lat,myi,outname,cmap='viridis',label='MYI')
-    #exit()  
-    
     #MYI from 'surface age' (detectable from space)
-    age = nb.get_gridded_vars(['Age'],x,y)['Age']
+    age = nb.get_gridded_vars(['Age_d'],x,y)['Age_d']
     if (date.month>9) | ((date.month==9) & (date.day>15)):
         pyr=date.year
     else:
@@ -109,11 +106,10 @@ for f in fl:
     print(diff)
     age = age/60/60/24/356
     myi_age = np.ma.array(age,mask=age<diff)
-    #Plot myi_age
-    outname = outpath_plots+'nextsim_myi_age_test.png'
-    outname = outpath_plots+'nextsim_myi_age_v_test.png'
-    plot_pcolormesh(lon,lat,age,outname,vmin=0,vmax=5,cmap='viridis',label='MYI')
-    exit()
+    ##Plot myi_age
+    #outname = outpath_plots+'age_test.png'
+    #plot_pcolormesh(lon,lat,myi_age,outname,vmin=0,vmax=1,cmap='viridis',label='MYI=1')
+    ##exit()
     
     #smoothen and regrid the data for nicer contours
     tmp = smooth_data(myi,lon,lat,lon_osi,lat_osi)
@@ -176,52 +172,41 @@ for f in fl:
     fyi_msd_list.append(fyi_msd)
     myi_mrr_list.append(myi_mrr)
     fyi_mrr_list.append(fyi_mrr)
-
-    #after 2005 also analyse the OSI-SAF data, otherwise append -999 as dummy values
-    dv = 0
-    if int(year)<2005: 
-        myi_osi_list.append(dv); ridge_bias.append(dv); snow_bias.append(dv); warm_bias.append(dv)
-        continue
     
     #OSI-SAF data
-    tmp = year+'04301200'
-    netcdf_name = 'OSI-SAF_ice_type_cumul_'+tmp+'.nc'
-    fosi_cumul = outpath+netcdf_name
-    f = Dataset(fosi_cumul)
+    tmp = year+mon
+    netcdf_name = 'OSI-SAF_ice_type_cumul_'+tmp+'*1200.nc'
+    fosi_cumul = glob(outpath+netcdf_name)
+    print(fosi_cumul)
+    f = Dataset(fosi_cumul[0])
     myi_osi_cumul = f.variables['myi_freq'][0,:,:]  #UNITS day^-1
     myi_osi = np.where(myi_osi_cumul>0.1,1,0)   #grid cell needs to be classified as MYI more than 3 days in a month (with 30 days)!!!
     
     #smoothen and regrid the data for nicer contours
     myi_osi_smooth = regrid_data(myi_osi,lon_osi,lat_osi,lon_gm,lat_gm)
     
-    #checking
-    outname = outpath_plots+'osi_test.png'
-    plot_pcolormesh(lon_osi,lat_osi,myi_osi_cumul,outname,cmap='viridis',label='MYI frequency')
-    exit()    
-    
-    
     #####PLOTTING MAPS*********************************************************************************************************************************
-    tmp = np.where(myi_age_smooth>.5,1,np.nan)
-    plot_contour_bg(lon_g,lat_g,tmp,data=[myi_smooth,myi_osi_smooth],levels=[.1,.1],colors=['red','k'], lw=[3,3], \
-                 labels=['neXtSIM MYI extent','OSI-SAF MYI extent'],bg_label='MYI age',outname=outpath_plots+'it_contour_'+year+'.png')    
+    #tmp = np.where(myi_age_smooth>.5,1,np.nan)
+    #plot_contour_bg(lon_g,lat_g,tmp,data=[myi_smooth,myi_osi_smooth],levels=[.1,.1],colors=['red','k'], lw=[3,3], \
+                 #labels=['neXtSIM MYI extent','OSI-SAF MYI extent'],bg_label='MYI age',outname=outpath_plots+'it_contour_'+year+'.png')    
     
     #plot neXtSIM ridges/snow as background
     snow_smooth = smooth_data(snow,lon,lat,lon_gm,lat_gm)
     rr_smooth = smooth_data(rr,lon,lat,lon_gm,lat_gm)
     
-    plot_contour_bg(lon_g,lat_g,rr_smooth,data=[myi_age_smooth,myi_osi_smooth],levels=[.5,.1],colors=['purple','k'], lw=[3,3], \
-                 labels=['neXtSIM MYI extent','OSI-SAF MYI extent'],bg_label='Ridge ratio',outname=outpath_plots+'it_contour_bg_'+year+'.png')
+    #plot_contour_bg(lon_g,lat_g,rr_smooth,data=[myi_age_smooth,myi_osi_smooth],levels=[.5,.1],colors=['purple','k'], lw=[3,3], \
+                 #labels=['neXtSIM MYI extent','OSI-SAF MYI extent'],bg_label='Ridge ratio',outname=outpath_plots+'it_contour_bg_'+year+'.png')
     
-    plot_contour_bg(lon_g,lat_g,snow_smooth,data=[myi_age_smooth,myi_osi_smooth],levels=[.5,.1],colors=['purple','k'], lw=[3,3], \
-                 labels=['neXtSIM MYI extent','OSI-SAF MYI extent'],bg_label='Snow',outname=outpath_plots+'it_contour_bg_snow_'+year+'.png',vmin=0,vmax=.5)
+    #plot_contour_bg(lon_g,lat_g,snow_smooth,data=[myi_age_smooth,myi_osi_smooth],levels=[.5,.1],colors=['purple','k'], lw=[3,3], \
+                 #labels=['neXtSIM MYI extent','OSI-SAF MYI extent'],bg_label='Snow',outname=outpath_plots+'it_contour_bg_snow_'+year+'.png',vmin=0,vmax=.5)
     
     #plot CFSR 'fall warm intrusions extent' as background
     yr = int(year)-1
     cfsr = np.load(outpath+'cfsr_warm_freq_'+str(yr))
     cfsr_smooth = smooth_data(cfsr,lon_fm,lat_fm,lon_gm,lat_gm)
     
-    plot_contour_bg(lon_g,lat_g,cfsr_smooth,data=[myi_age_smooth,myi_osi_smooth],levels=[.05,.1],colors=['purple','k'], lw=[3,3], \
-                 labels=['neXtSIM MYI extent','OSI-SAF MYI extent'],bg_label='warm instrusions freq',outname=outpath_plots+'it_contour_bg_cfsr_'+year+'.png',vmin=0,vmax=.3)
+    #plot_contour_bg(lon_g,lat_g,cfsr_smooth,data=[myi_age_smooth,myi_osi_smooth],levels=[.05,.1],colors=['purple','k'], lw=[3,3], \
+                 #labels=['neXtSIM MYI extent','OSI-SAF MYI extent'],bg_label='warm instrusions freq',outname=outpath_plots+'it_contour_bg_cfsr_'+year+'.png',vmin=0,vmax=.3)
 
     #####CALCULATING ADDITIONAL data for the time series***********************************************************************************************
     #mask the areas by age_mask and save for the time series
@@ -253,7 +238,7 @@ for f in fl:
     warm_bias.append(warm_diff)
 
 #save for time series  
-outfile = outpath+'age_ts' 
+outfile = outpath+'age_ts_winter' 
 np.savez(outfile, dates = np.array(dates),\
     sb = np.array(snow_bias), rb = np.array(ridge_bias), wb = np.array(warm_bias), \
     myit = np.array(myi_type_list), myia = np.array(myi_age_list), myio =np.array(myi_osi_list), \
@@ -262,7 +247,7 @@ np.savez(outfile, dates = np.array(dates),\
     myi_rr = np.array(myi_mrr_list), fyi_rr = np.array(fyi_mrr_list)    )
 
 #load
-container = np.load(outpath+'age_ts.npz')
+container = np.load(outpath+'age_ts_winter.npz')
 dates = container['dates']
 snow_bias = container['sb']
 ridge_bias = container['rb']

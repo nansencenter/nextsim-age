@@ -19,7 +19,7 @@ inpath_cs = '/input_obs_data/data/CS2_SMOS_v2.0/'
 #inpath = '/input_obs_data/polona/FRASIL/age_datamor_long/'
 inpath = 'data/'
 outpath = 'data/'
-outpath_plots = 'plots/'
+outpath_plots = 'plots/new/'
 
 ##read all the girds and construct a mask
 fl = sorted(glob(inpath_is+'icesat_icethk*.nc'))
@@ -42,6 +42,10 @@ f = Dataset(fn)
 lons = f.variables['longitude'][:]
 lats = f.variables['latitude'][:]
 mask_m = get_poly_mask(lons,lats)
+
+#get DRA mask
+mask_dra = get_dra_mask(lons,lats)
+mask_m = mask_dra
 
 orig_def = pyresample.geometry.SwathDefinition(lons=loni, lats=lati)
 targ_def = pyresample.geometry.SwathDefinition(lons=lons, lats=lats)
@@ -93,9 +97,9 @@ for fn in fl:
     dates_is.append(date)
     thick_is.append(msit)
 
-print(dates_is)
-print(thick_is)
-#exit()
+#print(dates_is)
+#print(thick_is)
+##exit()
 
 ###read the CS-2 sea ice thickness
 #fl = sorted(glob(inpath_cs+'awi-cs2smos-l4-sithick-cryosat2_smos_merged-rep-nh25km_ease2-*.nc'))
@@ -186,10 +190,10 @@ print(thick_is)
     #dates_m.extend(dt)
 
 ##save data
-#outfile = outpath+'thickness_ts' 
+#outfile = outpath+'thickness_ts_dra' 
 #np.savez(outfile, dt = np.array(dates_m), vm = np.array(thick_m) )
 
-#outfile = outpath+'thickness_ts_cs' 
+#outfile = outpath+'thickness_ts_cs_dra' 
 #np.savez(outfile, dt = np.array(dates_cs), vm = np.array(thick_cs), uc = np.array(unc_cs) )
 
 #load data
@@ -241,11 +245,11 @@ print(dfmon.loc[dfmon.index.month==11])
 print(dfmon.loc[dfmon.index.month==3])
 
 #plot
-fig, axes = plt.subplots(nrows=2, ncols=1,figsize=(10,8))
+fig, axes = plt.subplots(nrows=2, ncols=1,figsize=(8,8))
 
 #dfmon.plot(title='Ice Thickness',lw=3,yerr=dfmon2_std)
 ax = dfmon.iloc[:,:-1].loc[dfmon.index.month==11].plot(ax=axes[0],lw=3,yerr=dfmon2_std,ylim=[0,2.5])
-bx = dfmon.iloc[:,:-1].loc[dfmon.index.month==3].plot(ax=axes[1],lw=3,yerr=dfmon2_std,ylim=[0,2.5])
+bx = dfmon.iloc[:,:-1].loc[dfmon.index.month==3].plot(ax=axes[1],lw=3,yerr=dfmon2_std,ylim=[0,3.])
 
 
 #November uncertany

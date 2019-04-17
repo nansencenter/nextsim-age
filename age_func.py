@@ -60,7 +60,7 @@ def plot_contour(lons,lats,data,levels=[.15],colors=['purple'],lw=[1.],labels=['
     
     plt.savefig(outname,bbox_inches='tight')
     
-def plot_contour_bg(lons,lats,bg,data,levels=[.15],colors=['purple'],lw=[1.],labels=['Variable'],bg_label='Snow_depth',outname='test.png'):
+def plot_contour_bg(lons,lats,bg,data,levels=[.15],colors=['purple'],lw=[1.],labels=['Variable'],bg_label='Snow_depth',outname='test.png',vmin=0,vmax=1):
     # create the figure panel 
     fig = plt.figure(figsize=(10,10), facecolor='w')
 
@@ -74,7 +74,7 @@ def plot_contour_bg(lons,lats,bg,data,levels=[.15],colors=['purple'],lw=[1.],lab
     ax1.add_feature(cartopy.feature.LAND, zorder=1,facecolor=cartopy.feature.COLORS['land_alt1'])
 
     #plot 'background'
-    pp = plt.pcolormesh(lons,lats,bg,vmin=0,vmax=1, cmap='jet', transform=ccrs.PlateCarree())
+    pp = plt.pcolormesh(lons,lats,bg,vmin=vmin,vmax=vmax, cmap='jet', transform=ccrs.PlateCarree())
     # add the colourbar to the bottom of the plot.
     
     # plot sea ice field
@@ -135,6 +135,7 @@ def get_poly_mask(lons,lats):
     #create a geographical polygon for the Central Arctic (without the narrow band off the CAA)
     #https://regionmask.readthedocs.io/en/stable/_static/notebooks/create_own_regions.html
     #make two masks - one for W and one for E Arctic
+    
     #regionmask does not handle well the circular polygons around the NP
     lon360 = np.where(lons<0,360+lons,lons)
     #print(lon360)
@@ -153,10 +154,22 @@ def get_poly_mask(lons,lats):
     
     pt = [lon360[194,147],lats[194,147]];poly1.append(pt)
     pt = [lon360[157,156],lats[157,156]];poly1.append(pt)
-    pt = [lon360[113,174],lats[113,174]];poly1.append(pt)
-    
+    pt = [lon360[113,174],lats[113,174]];poly1.append(pt)        
     pt = [lon360[89,157],lats[89,157]];poly1.append(pt)
     pt = [lon360[29,123],lats[29,123]];poly1.append(pt)
+
+    ##more radical (even further away from the CAA coast)
+    #pt = [lon360[260,132],lats[260,132]];poly1.append(pt)
+    #pt = [lon360[239,140],lats[239,140]];poly1.append(pt)
+    #pt = [lon360[228,149],lats[228,149]];poly1.append(pt)
+    #pt = [lon360[210,152],lats[210,152]];poly1.append(pt)
+    
+    #pt = [lon360[194,151],lats[194,151]];poly1.append(pt)
+    #pt = [lon360[157,160],lats[157,160]];poly1.append(pt)
+    #pt = [lon360[113,178],lats[113,178]];poly1.append(pt)
+    #pt = [lon360[65,160],lats[65,160]];poly1.append(pt)
+    #pt = [lon360[24,162],lats[29,162]];poly1.append(pt)
+
     pt = [lon360[3,194],lats[3,194]];poly1.append(pt)
     pt = [lon360[3,344],lats[3,344]];poly1.append(pt)
     pt = [180,65];poly1.append(pt)
@@ -199,11 +212,92 @@ def get_poly_mask(lons,lats):
     
     ##Plot mask
     #outpath_plots = 'plots/run04/'
-    #outname = outpath_plots+'age_mask.png'
+    #outname = outpath_plots+'age_mask_rest.png'
     #plot_pcolormesh(lons,lats,age_mask,outname,cmap='viridis',label='Central Arctic Mask=1')
     #exit()
     
     return(age_mask)
+
+def get_dra_mask(lons,lats):
+    #get 'Data Release Area' mask for the Central Arctic, published by Rothrock et al, 2008
+    #this is the area for which submarine draft data is available (1979-2000)
+    #and all Kwok papers use this area to show trend extended by IS and CS-2 data
+    
+    #regionmask does not handle well the circular polygons around the NP
+    lon360 = np.where(lons<0,360+lons,lons)
+    
+    poly1 =[[360.,90.],
+            [360.,87.],
+            [345.,87.],
+            [300.,86.58],
+            [230.,80.],
+            [219.,80.],
+            [219.,70.],
+            [205.,72.],
+            [180.,74.],
+            [180.,90.],
+            [360.,90.]]
+            
+    poly2 =[[  0.,86.],
+            [  0.,90.],
+            [180.,90.],
+            [180.,74.],
+            [175.,75.50],
+            [172.,78.50],
+            [163.,80.50],
+            [126.,78.50],
+            [110.,84.33],
+            [ 80.,84.42],
+            [ 57.,85.17],
+            [ 33.,83.83],
+            [  8.,84.08],
+            [  0.,86.]]
+
+    numbers = [0, 1]
+    names = ['Arctic_west', 'Arctic_east']
+    abbrevs = ['Aw', 'Ae']
+    Arctic_mask = regionmask.Regions_cls('DRA_mask', numbers, names, abbrevs, [poly1,poly2])
+
+    #Make raster
+    mask = Arctic_mask.mask(lons, lats, wrap_lon=True)
+    #Merge mask
+    mask = np.where(mask>=0,1,0)
+    # pcolormesh does not handle NaNs, requires masked array
+    age_mask = np.ma.masked_invalid(mask)
+    
+    ##Plot mask
+    #outpath_plots = 'plots/new/'
+    #outname = outpath_plots+'age_mask_DRA.png'
+    #plot_pcolormesh(lons,lats,age_mask,outname,cmap='viridis',label='Central Arctic Mask=1')
+    #exit()
+    
+    return(age_mask)
+
+def read_sir(sirfile):
+    #Matlab code
+    #fid=fopen(filename,'r','ieee-be');     %ieee-be is big endian integer in python: <i2
+    #head=fread(fid,[256],'short');  % read header %usage:A = fread(fileID,sizeA,precision) %short: signed integers, 16bit, 2 byte (same as int16)
+
+    data = np.fromfile(sirfile, dtype='<f')
+    print(data)
+    print(data.shape)
+    print(data[0])
+    head = data[:256]
+    #print(head)
+    
+    with open(sirfile,'rb') as fin:
+        header = fin.read(256)
+        print(header)
+        hh = np.fromstring(header, dtype=np.int16)
+        nhead = hh[40]  #number of data blocks
+        ipol = hh[44]  #polarisation (valid options: 0=n/a,1=H,2=V)
+        idatatype = hh[47]  #head(48) = idatatype            ! data type code 0,2=i*2,1=i*1,4=f
+        print(nhead)
+        print(ipol)
+        print(idatatype)
+        
+    exit()
+    return()
 
 
 #from pynextsim.projection_info import ProjectionInfo

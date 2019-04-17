@@ -34,6 +34,9 @@ for fn in fl:
     #get date
     tmp = fn.split('_')[-1].split('T')[0]
     date = datetime.strptime(tmp, "%Y%m%d")
+    year = str(date.year)
+    if int(year)<2014: continue
+
     dates.append(date)
 
     #get data
@@ -88,14 +91,14 @@ for fn in fl:
     volume_age0v.append(vage0v); volume_age1v.append(vage1v); volume_age2v.append(vage2v); volume_age3v.append(vage3v); volume_age4v.append(vage4v)
     
 #save data
-outfile = outpath+'age_volume_ts' 
+outfile = outpath+'age_volume_ts_bn' 
 np.savez(outfile, dates = np.array(dates),\
     vmyi = np.array(volume_myi),\
     vage0 = np.array(volume_age0), vage1 = np.array(volume_age1),vage2 = np.array(volume_age2),vage3 = np.array(volume_age3),vage4 = np.array(volume_age4),\
     vage0v = np.array(volume_age0v),vage1v = np.array(volume_age1v),vage2v = np.array(volume_age2v),vage3v = np.array(volume_age3v),vage4v = np.array(volume_age4v) )
 
 #load data
-container = np.load(outpath+'age_volume_ts.npz')
+container = np.load(outpath+'age_volume_ts_bn.npz')
 dates = container['dates']
 volume_myi = container['vmyi'][::2]
 volume_myi1 = container['vmyi'][1::2]
@@ -134,7 +137,7 @@ cx.set_ylabel(r'volume (10$^3$km$^3$)')
 
 
 
-fig.savefig(outpath_plots+'cycle.png',bbox_inches='tight')
+fig.savefig(outpath_plots+'cycle_bn.png',bbox_inches='tight')
 
 
 

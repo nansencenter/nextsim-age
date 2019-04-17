@@ -9,9 +9,9 @@ from pynextsim.file_list import FileList
 from age_func import *
 
 #make April 1 maps
-inpath = 'data/run04_sept/'
+inpath = '/input_obs_data/polona/FRASIL/age_datamor_long/'
 icosi_path = '/input_obs_data/data/OSISAF_ice_conc/polstere/'
-outpath_plots = 'plots/run04/'
+outpath_plots = 'plots/new/'
 
 fl = sorted(glob(inpath+'field*0915T000000Z.bin'))
 print(fl)
@@ -70,4 +70,4 @@ for f in fl:
     #plot_contour_bg(lon_g,lat_g,ic_osi_smooth,data=[ic_smooth,ic_osi_smooth],levels=[.15,.15],colors=['red','purple'], lw=[3,3], \
                  #labels=['neXtSIM ice extent','OSI-SAF ice extent'],bg_label='Ridge ratio',outname=outpath_plots+'extent_sept_'+year+'.png')   
     
-    exit()
+    #exit()

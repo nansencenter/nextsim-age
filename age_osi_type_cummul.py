@@ -8,6 +8,10 @@ import cartopy
 import cartopy.crs as ccrs
 import pandas as pd
 
+
+#pick winter month
+mon = '12'
+
 inpath='/input_obs_data/data/'
 outpath = 'data/outputs/'
 outpath_plots = 'plots/run04/'
@@ -25,15 +29,11 @@ outpath_plots = 'plots/run04/'
 #pip uninstall matplotlib
 #pip install matplotlib
 
-#make the list of all files
-fl = sorted(glob(inpath+'OSISAF_ice_type/**/04/ice_type_nh_polstere-100_multi_*1200.nc', recursive=True))
-print(fl)
-
 date_list = []
 myi_list = []
 
 #get the land and NP-hole mask (north pole hole got smaller over time!!!)
-f = Dataset(fl[0])
+f = Dataset(inpath+'OSISAF_ice_type/2005/12/ice_type_nh_polstere-100_multi_200512011200.nc')
 sf = f.variables['status_flag'][0,:,:]
 lats = f.variables['lat'][:]
 lons = f.variables['lon'][:]
@@ -43,17 +43,17 @@ yc_osi = f.dimensions['yc']
 landmask = sf==0
 
 #loop over all the years
-#accummulate ice type on maps for each January
-years = range(2005,2019)
+#accummulate ice type on maps for each winter month
+years = range(2008,2016)
 for yr in years:
-    fl = sorted(glob(inpath+'OSISAF_ice_type/'+str(yr)+'/04/ice_type_nh_polstere-100_multi_*1200.nc'))
+    fl = sorted(glob(inpath+'OSISAF_ice_type/'+str(yr)+'/'+mon+'/ice_type_nh_polstere-100_multi_*1200.nc'))
     print(yr)
-    
+    print(fl)
     freq = np.zeros_like(sf)
     
     for i in range(0,len(fl[:])):
         f = fl[i]
-        #print(f)
+        print(f)
         
         #date
         tmp = f.split('_')[-1].split('.')[0]
@@ -165,37 +165,37 @@ for yr in years:
     myi_list.append(area)
         
 
-#save all the data   
-np.save(outpath+'dates_osi_jan_cumul',np.array(date_list))
-np.save(outpath+'myi_osi_jan_cumul',np.array(myi_list))
+##save all the data   
+#np.save(outpath+'dates_osi_jan_cumul',np.array(date_list))
+#np.save(outpath+'myi_osi_jan_cumul',np.array(myi_list))
 
-#load OSI-SAF sea ice type data
-dates_cumul = np.load(outpath+'dates_osi_jan_cumul.npy')-timedelta(hours=12)
-myi_cumul = np.load(outpath+'myi_osi_jan_cumul.npy')/1e3  #10^3 km^2
-
-
-#load OSI-SAF sea ice type data
-dates = np.load(outpath+'dates_osi_apr.npy')
-myi = np.load(outpath+'myi_osi_apr.npy')/1e3
-#import to pandas and plot
-df = pd.DataFrame({ 'MYI area' : myi}, index=dates)
-#make winter (January) averages
-dfmon = df.resample('M').mean()
-dfmon_std = df.resample('M').std()
-dfjan = dfmon.loc[dfmon.index.month==4]
-dfjan_std = dfmon_std.loc[dfmon_std.index.month==4]
-
-#import to pandas and plot
-tmp = pd.DataFrame({ 'MYI area cumul' : myi_cumul}, index=dates_cumul)
-result = dfjan.join(tmp, how='outer')
+##load OSI-SAF sea ice type data
+#dates_cumul = np.load(outpath+'dates_osi_jan_cumul.npy')-timedelta(hours=12)
+#myi_cumul = np.load(outpath+'myi_osi_jan_cumul.npy')/1e3  #10^3 km^2
 
 
-print(dfjan)
-print(tmp)
-print(result)
+##load OSI-SAF sea ice type data
+#dates = np.load(outpath+'dates_osi_apr.npy')
+#myi = np.load(outpath+'myi_osi_apr.npy')/1e3
+##import to pandas and plot
+#df = pd.DataFrame({ 'MYI area' : myi}, index=dates)
+##make winter (January) averages
+#dfmon = df.resample('M').mean()
+#dfmon_std = df.resample('M').std()
+#dfjan = dfmon.loc[dfmon.index.month==4]
+#dfjan_std = dfmon_std.loc[dfmon_std.index.month==4]
 
-fig1 = result.iloc[:, :].plot(yerr=dfjan_std).get_figure()
-fig1.savefig(outpath_plots+'osi_test_cumul.png')
+##import to pandas and plot
+#tmp = pd.DataFrame({ 'MYI area cumul' : myi_cumul}, index=dates_cumul)
+#result = dfjan.join(tmp, how='outer')
+
+
+#print(dfjan)
+#print(tmp)
+#print(result)
+
+#fig1 = result.iloc[:, :].plot(yerr=dfjan_std).get_figure()
+#fig1.savefig(outpath_plots+'osi_test_cumul.png')
 
 
 

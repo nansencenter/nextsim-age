@@ -13,7 +13,7 @@ from age_func import *
 #seasonal cycle of ice type and ice age (detectable and volumetric)
 inpath = 'data/'
 outpath = 'data/'
-outpath_plots = 'plots/'
+outpath_plots = 'plots/new/'
 
 #get all daily files
 fl = sorted(glob(inpath+'Moorings.nc.~7*'))

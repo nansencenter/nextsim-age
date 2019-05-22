@@ -100,7 +100,7 @@ for f in fl:
     #exit()  
     
     #MYI from 'surface age' (detectable from space)
-    age = nb.get_gridded_vars(['Age'],x,y)['Age']
+    #age = nb.get_gridded_vars(['Age'],x,y)['Age']
     if (date.month>9) | ((date.month==9) & (date.day>15)):
         pyr=date.year
     else:
@@ -111,7 +111,7 @@ for f in fl:
     myi_age = np.ma.array(age,mask=age<diff)
     #Plot myi_age
     outname = outpath_plots+'nextsim_myi_age_test.png'
-    outname = outpath_plots+'nextsim_myi_age_v_test.png'
+    #outname = outpath_plots+'nextsim_myi_age_v_test.png'
     plot_pcolormesh(lon,lat,age,outname,vmin=0,vmax=5,cmap='viridis',label='MYI')
     exit()
     

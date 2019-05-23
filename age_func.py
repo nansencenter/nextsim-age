@@ -91,6 +91,40 @@ def plot_contour_bg(lons,lats,bg,data,levels=[.15],colors=['purple'],lw=[1.],lab
 
     
     plt.savefig(outname,bbox_inches='tight')
+
+def plot_quiver(lons,lats,var,u,v,outname,vmin=0,vmax=1,cmap='jet',label='Variable'):
+    # create the figure panel 
+    fig = plt.figure(figsize=(10,10), facecolor='w')
+
+    # create the map using the cartopy Orthographic projection, selecting the South Pole
+    ax1 = plt.subplot(1,1,1, projection=ccrs.NorthPolarStereo())
+    ax1.set_extent([-180, 180, 66, 90], ccrs.PlateCarree())
+
+    # add coastlines, gridlines, make sure the projection is maximised inside the plot, and fill in the land with colour
+    ax1.coastlines(resolution='110m', zorder=3) # zorder=3 makes sure that no other plots overlay the coastlines
+    ax1.gridlines()
+    ax1.add_feature(cartopy.feature.LAND, zorder=1,facecolor=cartopy.feature.COLORS['land_alt1'])
+
+    # plot sea ice field
+    pp = plt.pcolormesh(lons,lats,var,vmin=vmin,vmax=vmax, cmap=cmap, transform=ccrs.PlateCarree())
+    
+    #plot the vector arrows
+    plt.quiver(lons,lats,u,v, transform=ccrs.PlateCarree(), regrid_shape=50)
+
+
+    # add the colourbar to the bottom of the plot.
+    # The first moves the bottom of the map up to 15% of total figure height, 
+    # the second makes the new axes for the colourbar, 
+    # the third makes the colourbar, and the final adds the label
+    fig.subplots_adjust(bottom=0.15)
+    cbar_ax = fig.add_axes([0.2, 0.1, 0.625, 0.033])
+    stp = (vmax-vmin)/10.
+    cbar = plt.colorbar(pp, cax=cbar_ax, orientation='horizontal', ticks=np.arange(vmin,vmax+stp,stp))
+    cbar.set_label(label=label,size=14, family='serif')
+    
+    plt.savefig(outname,bbox_inches='tight')
+
+
     
 def smooth_data(data,lon,lat,coarse_lon,coarse_lat):    
     #smoothen the data for nicer contours with a lowpass filter

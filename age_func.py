@@ -92,26 +92,29 @@ def plot_contour_bg(lons,lats,bg,data,levels=[.15],colors=['purple'],lw=[1.],lab
     
     plt.savefig(outname,bbox_inches='tight')
 
-def plot_quiver(lons,lats,var,u,v,outname,vmin=0,vmax=1,cmap='jet',label='Variable'):
+def plot_quiver(x,y,u,v,outname,vmin=0,vmax=1,cmap='jet',label='Variable'):
     # create the figure panel 
     fig = plt.figure(figsize=(10,10), facecolor='w')
 
-    # create the map using the cartopy Orthographic projection, selecting the South Pole
-    ax1 = plt.subplot(1,1,1, projection=ccrs.NorthPolarStereo())
-    ax1.set_extent([-180, 180, 66, 90], ccrs.PlateCarree())
-
+    # create the map using the cartopy NorthPoleStereo
+    # +proj=stere +a=6378273 +b=6356889.44891 +lat_0=90 +lat_ts=70 +lon_0=-45"
+    globe = cartopy.crs.Globe(semimajor_axis=6378273, semiminor_axis=6356889.44891)
+    ax1 = plt.subplot(1,1,1, projection=ccrs.NorthPolarStereo(central_longitude=-45, true_scale_latitude=70, globe=globe))
+    ax1.set_extent([15, -180, 72, 62], crs=ccrs.PlateCarree())
+    
     # add coastlines, gridlines, make sure the projection is maximised inside the plot, and fill in the land with colour
     ax1.coastlines(resolution='110m', zorder=3) # zorder=3 makes sure that no other plots overlay the coastlines
+    #ax1.gridlines(crs=ccrs.PlateCarree(),xlocs=range(0,370,10),ylocs=range(60,90,5))
     ax1.gridlines()
-    ax1.add_feature(cartopy.feature.LAND, zorder=1,facecolor=cartopy.feature.COLORS['land_alt1'])
+    ax1.add_feature(cartopy.feature.LAND,facecolor=cartopy.feature.COLORS['land_alt1'])
 
     # plot sea ice field
-    pp = plt.pcolormesh(lons,lats,var,vmin=vmin,vmax=vmax, cmap=cmap, transform=ccrs.PlateCarree())
-    
-    #plot the vector arrows
-    plt.quiver(lons,lats,u,v, transform=ccrs.PlateCarree(), regrid_shape=50)
-
-
+    speed = np.sqrt(u**2+v**2)
+    pp = plt.pcolormesh(x,y,speed,vmin=vmin,vmax=vmax, cmap=cmap)
+            
+    #but our northings and eastings are in the projcted grid and not in lat, lon!!!!
+    ax1.quiver(x, y, u, v, scale=5)
+        
     # add the colourbar to the bottom of the plot.
     # The first moves the bottom of the map up to 15% of total figure height, 
     # the second makes the new axes for the colourbar, 
@@ -124,8 +127,6 @@ def plot_quiver(lons,lats,var,u,v,outname,vmin=0,vmax=1,cmap='jet',label='Variab
     
     plt.savefig(outname,bbox_inches='tight')
 
-
-    
 def smooth_data(data,lon,lat,coarse_lon,coarse_lat):    
     #smoothen the data for nicer contours with a lowpass filter
     data = ndimage.gaussian_filter(data, 3)    #sigma
@@ -332,6 +333,90 @@ def read_sir(sirfile):
         
     exit()
     return()
+
+def corr_pearson(x, y):
+
+    """
+    Compute Pearson correlation.
+    """
+
+    x_mean = np.mean(x, axis=0)
+    x_stddev = np.std(x, axis=0)
+
+    y_mean = np.mean(y, axis=0)
+    y_stddev = np.std(y, axis=0)
+
+    x1 = (x - x_mean)/x_stddev
+    y1 = (y - y_mean)/y_stddev
+
+    x1y1mult = x1 * y1
+
+    x1y1sum = np.sum(x1y1mult, axis=0)
+
+    corr = x1y1sum/x.shape[0]
+
+    return corr
+
+
+def corr_pearson_circ(x, y):
+
+    """
+    Compute Pearson correlation for circular data (angles).
+    """
+
+    #calculate means
+    pirad = np.radians(np.pi)
+    ssx = np.sum(np.sin(x),axis=0)
+    scx = np.sum(np.cos(x),axis=0)
+    x_mean = np.where((ssx>0)&(scx>0),  np.arctan(ssx/scx)          ,0)
+    x_mean = np.where((scx<0),          np.arctan(ssx/scx)+pirad    ,x_mean)
+    x_mean = np.where((ssx<0)&(scx>0),  np.arctan(ssx/scx)+2*pirad  ,x_mean)
+    
+    print(x.shape)
+    print(x_mean.shape)
+    
+    
+    ssy = np.sum(np.sin(y),axis=0)
+    scy = np.sum(np.cos(y),axis=0)
+    y_mean = np.where((ssy>0)&(scy>0),  np.arctan(ssy/scy)           ,0)
+    y_mean = np.where((scy<0),          np.arctan(ssy/scy)+pirad     ,y_mean)
+    y_mean = np.where((ssy<0)&(scy>0),  np.arctan(ssy/scy)+2*pirad   ,y_mean)
+    
+    #calculate residuals
+    resx = np.sin(x-x_mean)
+    resy = np.sin(y-y_mean)
+
+    #calculate Pearson correlation coefficient
+    corr = np.sum(resx*resy,axis=0)/np.sqrt(np.sum(resx**2*resy**2,axis=0))
+    
+    print(corr.shape)
+    
+    return corr
+
+def plot_pdf(l1,l2,outname):
+    
+    fig = plt.figure(figsize=(8,8), facecolor='w')
+    ax = plt.subplot(1,1,1)
+    
+    
+    #plot a PDF
+    bl = np.arange(0,.41,.01)
+    #n, bins, patches = plt.hist(slist, bl, normed=True, histtype='step', color='m', alpha=.8, label='neXtSIM', lw = 3)
+    #n, bins, patches = plt.hist(slist_gauss, bl, normed=True, histtype='step', color='r', alpha=.8, label='neXtSIM', lw = 3)
+    n, bins, patches = plt.hist(np.clip(l1, bl[0], bl[-1]), bl, normed=True, histtype='step', color='darkred', alpha=.8, label='neXtSIM', lw = 3)
+    n, bins, patches = plt.hist(np.clip(l2, bl[0], bl[-1]), bl, normed=True, histtype='step', alpha=.8, label='OSI-SAF', lw = 3)
+
+
+    plt.xlabel('Speed (m/s)')
+    plt.ylabel('Probability')
+    plt.title('Probability distribution of mean 2-day speed \nfor January 2007-2015')
+    #plt.text(60, .025, r'$\mu=100,\ \sigma=15$')
+    #plt.axis([40, 160, 0, 0.03])
+    plt.legend(loc='upper right',prop={'size':16})
+    plt.grid(True)
+    plt.savefig(outname)
+
+    
 
 
 #from pynextsim.projection_info import ProjectionInfo

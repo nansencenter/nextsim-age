@@ -92,7 +92,7 @@ def plot_contour_bg(lons,lats,bg,data,levels=[.15],colors=['purple'],lw=[1.],lab
     
     plt.savefig(outname,bbox_inches='tight')
 
-def plot_quiver(x,y,u,v,outname,vmin=0,vmax=1,cmap='jet',label='Variable'):
+def plot_quiver(x,y,u,v,outname,vmin=0,vmax=1,cmap='jet',label='Variable', scale=5):
     # create the figure panel 
     fig = plt.figure(figsize=(10,10), facecolor='w')
 
@@ -113,7 +113,7 @@ def plot_quiver(x,y,u,v,outname,vmin=0,vmax=1,cmap='jet',label='Variable'):
     pp = plt.pcolormesh(x,y,speed,vmin=vmin,vmax=vmax, cmap=cmap)
             
     #but our northings and eastings are in the projcted grid and not in lat, lon!!!!
-    ax1.quiver(x, y, u, v, scale=5)
+    ax1.quiver(x, y, u, v, scale=scale)
         
     # add the colourbar to the bottom of the plot.
     # The first moves the bottom of the map up to 15% of total figure height, 
@@ -365,33 +365,81 @@ def corr_pearson_circ(x, y):
     """
 
     #calculate means
-    pirad = np.radians(np.pi)
-    ssx = np.sum(np.sin(x),axis=0)
-    scx = np.sum(np.cos(x),axis=0)
-    x_mean = np.where((ssx>0)&(scx>0),  np.arctan(ssx/scx)          ,0)
-    x_mean = np.where((scx<0),          np.arctan(ssx/scx)+pirad    ,x_mean)
-    x_mean = np.where((ssx<0)&(scx>0),  np.arctan(ssx/scx)+2*pirad  ,x_mean)
+    #pirad = np.radians(np.pi)
+    #ssx = np.sum(np.sin(x),axis=0)
+    #scx = np.sum(np.cos(x),axis=0)
+    #x_mean = np.where((ssx>0)&(scx>0),  np.arctan(ssx/scx)          ,0)
+    #x_mean = np.where((scx<0),          np.arctan(ssx/scx)+pirad    ,x_mean)
+    #x_mean = np.where((ssx<0)&(scx>0),  np.arctan(ssx/scx)+2*pirad  ,x_mean)
+        
+    x_mean = circmean(x,axis=0)
+    y_mean = circmean(y,axis=0)
+    
+    
+    #ssy = np.sum(np.sin(y),axis=0)
+    #scy = np.sum(np.cos(y),axis=0)
+    #y_mean = np.where((ssy>0)&(scy>0),  np.arctan(ssy/scy)           ,0)
+    #y_mean = np.where((scy<0),          np.arctan(ssy/scy)+pirad     ,y_mean)
+    #y_mean = np.where((ssy<0)&(scy>0),  np.arctan(ssy/scy)+2*pirad   ,y_mean)
     
     print(x.shape)
     print(x_mean.shape)
     
-    
-    ssy = np.sum(np.sin(y),axis=0)
-    scy = np.sum(np.cos(y),axis=0)
-    y_mean = np.where((ssy>0)&(scy>0),  np.arctan(ssy/scy)           ,0)
-    y_mean = np.where((scy<0),          np.arctan(ssy/scy)+pirad     ,y_mean)
-    y_mean = np.where((ssy<0)&(scy>0),  np.arctan(ssy/scy)+2*pirad   ,y_mean)
-    
     #calculate residuals
-    resx = np.sin(x-x_mean)
-    resy = np.sin(y-y_mean)
+    resx = np.sin(np.radians(x)-np.radians(x_mean))
+    resy = np.sin(np.radians(y)-np.radians(y_mean))
 
     #calculate Pearson correlation coefficient
     corr = np.sum(resx*resy,axis=0)/np.sqrt(np.sum(resx**2*resy**2,axis=0))
     
+    corr = corr#/x.shape[0]
+    
     print(corr.shape)
     
-    return corr
+    
+    #for plotting
+    #diff = np.radians(x_mean) - np.radians(y_mean)
+    #diff = np.degrees(diff)
+    #diff = np.where(diff<0,diff+360,diff)
+    diff = circdiff(x_mean,y_mean)
+    
+    diff = 180 - abs(abs(x_mean - y_mean) - 180)
+
+        
+    return x_mean,y_mean,diff,corr
+
+def circmean(alpha,axis=None):
+    #To convert from radians to degrees, multiply by (180o/(PI))
+    tod = 180/np.pi
+    tor = np.pi/180
+
+    sa = np.mean(np.sin(alpha*tor),axis)
+    ca  = np.mean(np.cos(alpha*tor),axis)
+    mean_angle = np.arctan2(sa,ca)*tod
+    mean_angle = np.where(mean_angle<0,mean_angle+360,mean_angle)
+    return mean_angle
+
+
+def circdiff(alpha,beta,axis=None):
+    #To convert from radians to degrees, multiply by (180o/(PI))
+    tod = 180/np.pi
+    tor = np.pi/180
+
+    sa = np.sin(alpha*tor)
+    ca  = np.cos(alpha*tor)
+    
+    sb = np.sin(beta*tor)
+    cb  = np.cos(beta*tor)
+    
+    sd = sa-sb
+    cd = ca-cb
+    
+    mean_diff = np.arctan2(sd,cd)*tod
+    #mean_diff = np.where(mean_diff<0,mean_diff+360,mean_diff)
+    return mean_diff
+
+
+
 
 def plot_pdf(l1,l2,outname):
     
@@ -400,7 +448,7 @@ def plot_pdf(l1,l2,outname):
     
     
     #plot a PDF
-    bl = np.arange(0,.41,.01)
+    bl = np.arange(.02,.41,.01)
     #n, bins, patches = plt.hist(slist, bl, normed=True, histtype='step', color='m', alpha=.8, label='neXtSIM', lw = 3)
     #n, bins, patches = plt.hist(slist_gauss, bl, normed=True, histtype='step', color='r', alpha=.8, label='neXtSIM', lw = 3)
     n, bins, patches = plt.hist(np.clip(l1, bl[0], bl[-1]), bl, normed=True, histtype='step', color='darkred', alpha=.8, label='neXtSIM', lw = 3)

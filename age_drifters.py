@@ -38,10 +38,14 @@ for yr in years:
     
     #make empty arrays
     wdays = 30+31+31+28+31+30           #number of winter days
+    if yr%4 ==0 : wdays = wdays+1       #leap year
     ws = np.ones([wdays,yc.shape[0],xc.shape[0]], dtype=float)*-999
     wa = np.ones([wdays,yc.shape[0],xc.shape[0]], dtype=float)*-999
     wso = np.ones([wdays,yc.shape[0],xc.shape[0]], dtype=float)*-999
     wao = np.ones([wdays,yc.shape[0],xc.shape[0]], dtype=float)*-999
+    
+    wex = np.ones([wdays,yc.shape[0],xc.shape[0]], dtype=float)*-999
+    wey = np.ones([wdays,yc.shape[0],xc.shape[0]], dtype=float)*-999
     
     #get all model files
     fl = sorted(
@@ -78,8 +82,8 @@ for yr in years:
         nh_stere=pyproj.Proj("+proj=stere +a=6378273 +b=6356889.44891 +lat_0=90 +lat_ts=70 +lon_0=-45")
         x0,y0 = pyproj.transform(wgs84, nh_stere,lons0,lats0)
         x1,y1 = pyproj.transform(wgs84, nh_stere,lons1,lats1)
-        dx = x0-x1
-        dy = y0-y1
+        dx = x1-x0
+        dy = y1-y0
         
         #put displacements on a regular grid (pyresample) - they should be very close in space and no information lost by interpolation
         swath_def = pyresample.geometry.SwathDefinition(lons=lons0, lats=lats0)
@@ -93,6 +97,10 @@ for yr in years:
         tm = (time[0]-time[1])*24*60*60 #this is exactly 2 days anyway
         u = dx_g/tm
         v = dy_g/tm
+        
+        #when compared to OSI-SAF dX,dY, we notice a difference in grid orientation, therefore we invert the sign here (see bellow):
+        dy_g = -dy_g
+        v = -v
                 
         ##quiver plot
         #outname = outpath_plots+'nextsim_drifters_test_arrows.png'
@@ -113,6 +121,22 @@ for yr in years:
         f = Dataset(netcdf_name) 
         dX = f.variables['dX'][0,:,:]*1000
         dY = f.variables['dY'][0,:,:]*1000
+        
+        ##re-calculate from coordinates and compare
+        #lat1_osi = f.variables['lat1'][0,:,:]
+        #lon1_osi = f.variables['lon1'][0,:,:]
+        #x0,y0 = pyproj.transform(wgs84, nh_stere,lon_osi,lat_osi)
+        #x1,y1 = pyproj.transform(wgs84, nh_stere,lon1_osi,lat1_osi)
+        #dx = x1-x0
+        #dy = y1-y0       
+        
+        #print(dX[85,55])
+        #print(dY[85,55])
+        
+        #print(dx[85,55])
+        #print(dy[85,55])
+        
+        #the coordintes are same in magnitude, but the dY has swapped sign. To compensate for this we turn around v in nextsim (see above)
         
         uo = dX/tm
         vo = dY/tm
@@ -135,56 +159,83 @@ for yr in years:
        
         #make speed,dir arrays for each dataset and add one layer for each day, keep -999 as missing values
         speed = np.sqrt(u**2+v**2)
-        ang = np.arccos(u/speed)
+        #arctan2 gives the angle from origin at [1,0] - that is 90 deg. clockwise of the N direction
+        ang = 90 - np.degrees(np.arctan2(v,u))
         ws[d,:,:] = speed
-        wa[d,:,:] = ang             #angles in radians
+        wa[d,:,:] = ang
         
         speedo = np.sqrt(uo**2+vo**2)
-        ango = np.arccos(uo/speedo)
-        #diro = 
+        ango = 90 - np.degrees(np.arctan2(vo,uo))
         wso[d,:,:] = speedo
         wao[d,:,:] = ango
         
-        #print(wso[d,:,:])
-        #print(wao[d,:,:])
-        #exit()
+        
+        ######################3
+        #instead of this i could simply make mean error vectors
+        x_error = dX - dx_g
+        y_error = dY - dy_g
+        
+        wex[d,:,:] = x_error/1000
+        wey[d,:,:] = y_error/1000
+        
+        
         
         d = d+1  
-        #exit()
-        
-        
         
     #calculate correlation for each grid cell for each winter
     ws = np.ma.array(ws,mask=ws==0)
     wso = np.ma.array(wso,mask=wso==0)
-    wa = np.ma.array(wa,mask=wa==0)          #masked values became 0 in division
-    wao = np.ma.array(wao,mask=wao==0)
+    wa = np.ma.array(wa,mask=wa==90)          #masked values became 0 in division
+    wao = np.ma.array(wao,mask=wao==90)
     
     scorr = corr_pearson(wso,ws)
     
-    acorr = corr_pearson_circ(wao,wa)
+    ma,mb,diff,acorr = corr_pearson_circ(wao,wa)
     
-    print(scorr)    
-    print(acorr)
     
+     
     #make correlation maps (for speed and direction) for each winter
-    outname = outpath_plots+'drifters_corr_speed.png'
+    outname = outpath_plots+'drifters_corr_speed_'+str(yr)+'.png'
     plot_pcolormesh(lon_osi,lat_osi,scorr,outname,vmin=-1,vmax=1,cmap='bwr',label='correlation')
-    
-    outname = outpath_plots+'drifters_corr_angle.png'
+
+    outname = outpath_plots+'drifters_corr_angle_'+str(yr)+'.png'
     plot_pcolormesh(lon_osi,lat_osi,acorr,outname,vmin=-1,vmax=1,cmap='bwr',label='correlation')
 
-        
-    #make also PDF for speeds
-    #for every year
-    
-    slist = ws[~mask].flatten()
-    slisto = wso[~mask].flatten()
-    
-    outname = outpath_plots+'drifters_pdf.png'
-    plot_pdf(slist,slisto,outname)
+    import matplotlib.colors
+    circ_cmap = matplotlib.colors.LinearSegmentedColormap.from_list("", ["purple","red","white","blue","purple"])
+    outname = outpath_plots+'drifters_diff_angle_'+str(yr)+'.png'
+    plot_pcolormesh(lon_osi,lat_osi,diff,outname,vmin=-180,vmax=180,cmap=circ_cmap,label='angle diff')
 
-    exit()    
+    outname = outpath_plots+'drifters_diff_angle1_'+str(yr)+'.png'
+    plot_pcolormesh(lon_osi,lat_osi,ma,outname,vmin=0,vmax=360,cmap=circ_cmap,label='mean angle')
+    outname = outpath_plots+'drifters_diff_angle2_'+str(yr)+'.png'
+    plot_pcolormesh(lon_osi,lat_osi,mb,outname,vmin=0,vmax=360,cmap=circ_cmap,label='mean angle')    
+    
+    
+    #error maps
+    mwex = np.mean(wex,axis=0)
+    mwey = np.mean(wex,axis=0)
+    
+    #quiver plot
+    outname = outpath_plots+'nextsim_drifters_error_'+str(yr)+'.png'
+    plot_quiver(xc,yc,mwex,mwey,outname,cmap='viridis',label='mean error motion (km)',vmin=-10,vmax=10,scale=2)
+    #exit()
+    
+    
+    
+    #exit()
+
+        
+    ##make also PDF for speeds
+    ##for every year
+    #mask=ws==0
+    #slist = ws[~mask].flatten()
+    #slisto = wso[~mask].flatten()
+    
+    #outname = outpath_plots+'drifters_pdf.png'
+    #plot_pdf(slist,slisto,outname)
+
+    #exit()    
     
 #PDF for the whole period
 

@@ -13,9 +13,11 @@ def plot_pcolormesh(lons,lats,var,outname,vmin=0,vmax=1,cmap='jet',label='Variab
     # create the figure panel 
     fig = plt.figure(figsize=(10,10), facecolor='w')
 
-    # create the map using the cartopy Orthographic projection, selecting the South Pole
-    ax1 = plt.subplot(1,1,1, projection=ccrs.NorthPolarStereo())
-    ax1.set_extent([-180, 180, 66, 90], ccrs.PlateCarree())
+    # create the map using the cartopy NorthPoleStereo
+    # +proj=stere +a=6378273 +b=6356889.44891 +lat_0=90 +lat_ts=70 +lon_0=-45"
+    globe = cartopy.crs.Globe(semimajor_axis=6378273, semiminor_axis=6356889.44891)
+    ax1 = plt.subplot(1,1,1, projection=ccrs.NorthPolarStereo(central_longitude=-45, true_scale_latitude=70, globe=globe))
+    ax1.set_extent([15, -180, 72, 62], crs=ccrs.PlateCarree())
 
     # add coastlines, gridlines, make sure the projection is maximised inside the plot, and fill in the land with colour
     ax1.coastlines(resolution='110m', zorder=3) # zorder=3 makes sure that no other plots overlay the coastlines
@@ -37,14 +39,17 @@ def plot_pcolormesh(lons,lats,var,outname,vmin=0,vmax=1,cmap='jet',label='Variab
     cbar.set_label(label=label,size=14, family='serif')
     
     plt.savefig(outname,bbox_inches='tight')
+    plt.close()
     
 def plot_contour(lons,lats,data,levels=[.15],colors=['purple'],lw=[1.],labels=['Variable'],outname='test.png'):
     # create the figure panel 
     fig = plt.figure(figsize=(10,10), facecolor='w')
 
-    # create the map using the cartopy Orthographic projection, selecting the South Pole
-    ax1 = plt.subplot(1,1,1, projection=ccrs.NorthPolarStereo())
-    ax1.set_extent([-180, 180, 66, 90], ccrs.PlateCarree())
+    # create the map using the cartopy NorthPoleStereo
+    # +proj=stere +a=6378273 +b=6356889.44891 +lat_0=90 +lat_ts=70 +lon_0=-45"
+    globe = cartopy.crs.Globe(semimajor_axis=6378273, semiminor_axis=6356889.44891)
+    ax1 = plt.subplot(1,1,1, projection=ccrs.NorthPolarStereo(central_longitude=-45, true_scale_latitude=70, globe=globe))
+    ax1.set_extent([15, -180, 72, 62], crs=ccrs.PlateCarree())
 
     # add coastlines, gridlines, make sure the projection is maximised inside the plot, and fill in the land with colour
     ax1.coastlines(resolution='110m', zorder=3) # zorder=3 makes sure that no other plots overlay the coastlines
@@ -59,14 +64,17 @@ def plot_contour(lons,lats,data,levels=[.15],colors=['purple'],lw=[1.],labels=['
     ax1.legend(loc='upper left')
     
     plt.savefig(outname,bbox_inches='tight')
+    plt.close()
     
 def plot_contour_bg(lons,lats,bg,data,levels=[.15],colors=['purple'],lw=[1.],labels=['Variable'],bg_label='Snow_depth',outname='test.png',vmin=0,vmax=1):
     # create the figure panel 
     fig = plt.figure(figsize=(10,10), facecolor='w')
 
-    # create the map using the cartopy Orthographic projection, selecting the South Pole
-    ax1 = plt.subplot(1,1,1, projection=ccrs.NorthPolarStereo())
-    ax1.set_extent([-180, 180, 66, 90], ccrs.PlateCarree())
+    # create the map using the cartopy NorthPoleStereo
+    # +proj=stere +a=6378273 +b=6356889.44891 +lat_0=90 +lat_ts=70 +lon_0=-45"
+    globe = cartopy.crs.Globe(semimajor_axis=6378273, semiminor_axis=6356889.44891)
+    ax1 = plt.subplot(1,1,1, projection=ccrs.NorthPolarStereo(central_longitude=-45, true_scale_latitude=70, globe=globe))
+    ax1.set_extent([15, -180, 72, 62], crs=ccrs.PlateCarree())
 
     # add coastlines, gridlines, make sure the projection is maximised inside the plot, and fill in the land with colour
     ax1.coastlines(resolution='110m', zorder=3) # zorder=3 makes sure that no other plots overlay the coastlines
@@ -89,8 +97,8 @@ def plot_contour_bg(lons,lats,bg,data,levels=[.15],colors=['purple'],lw=[1.],lab
     cbar = plt.colorbar(pp, cax=cbar_ax, orientation='horizontal', ticks=np.arange(0,1.1,0.1))
     cbar.set_label(label=bg_label,size=14, family='serif')
 
-    
     plt.savefig(outname,bbox_inches='tight')
+    plt.close()
 
 def plot_quiver(x,y,u,v,outname,vmin=0,vmax=1,cmap='jet',label='Variable', scale=5):
     # create the figure panel 
@@ -126,6 +134,7 @@ def plot_quiver(x,y,u,v,outname,vmin=0,vmax=1,cmap='jet',label='Variable', scale
     cbar.set_label(label=label,size=14, family='serif')
     
     plt.savefig(outname,bbox_inches='tight')
+    plt.close()
 
 def smooth_data(data,lon,lat,coarse_lon,coarse_lat):    
     #smoothen the data for nicer contours with a lowpass filter
@@ -365,47 +374,23 @@ def corr_pearson_circ(x, y):
     """
 
     #calculate means
-    #pirad = np.radians(np.pi)
-    #ssx = np.sum(np.sin(x),axis=0)
-    #scx = np.sum(np.cos(x),axis=0)
-    #x_mean = np.where((ssx>0)&(scx>0),  np.arctan(ssx/scx)          ,0)
-    #x_mean = np.where((scx<0),          np.arctan(ssx/scx)+pirad    ,x_mean)
-    #x_mean = np.where((ssx<0)&(scx>0),  np.arctan(ssx/scx)+2*pirad  ,x_mean)
-        
     x_mean = circmean(x,axis=0)
     y_mean = circmean(y,axis=0)
-    
-    
-    #ssy = np.sum(np.sin(y),axis=0)
-    #scy = np.sum(np.cos(y),axis=0)
-    #y_mean = np.where((ssy>0)&(scy>0),  np.arctan(ssy/scy)           ,0)
-    #y_mean = np.where((scy<0),          np.arctan(ssy/scy)+pirad     ,y_mean)
-    #y_mean = np.where((ssy<0)&(scy>0),  np.arctan(ssy/scy)+2*pirad   ,y_mean)
-    
-    print(x.shape)
-    print(x_mean.shape)
-    
+    #mean angle difference
+    diff = y_mean - x_mean
+    diff = np.where(diff>180,diff-360,diff)
+    diff = np.where(diff<-180,diff+360,diff)
+        
     #calculate residuals
     resx = np.sin(np.radians(x)-np.radians(x_mean))
     resy = np.sin(np.radians(y)-np.radians(y_mean))
 
     #calculate Pearson correlation coefficient
-    corr = np.sum(resx*resy,axis=0)/np.sqrt(np.sum(resx**2*resy**2,axis=0))
-    
-    corr = corr#/x.shape[0]
-    
-    print(corr.shape)
-    
-    
-    #for plotting
-    #diff = np.radians(x_mean) - np.radians(y_mean)
-    #diff = np.degrees(diff)
-    #diff = np.where(diff<0,diff+360,diff)
-    diff = circdiff(x_mean,y_mean)
-    
-    diff = 180 - abs(abs(x_mean - y_mean) - 180)
-
-        
+    #this is original formula from Jammamaldaka, 2001 (Rozman et al, 2011 has an error in denominator - it summs before it multiplys)
+    stev = np.sum(resx*resy,axis=0)
+    imen = np.sqrt(np.sum(resx**2,axis=0)*np.sum(resy**2,axis=0))
+    corr = stev/imen
+ 
     return x_mean,y_mean,diff,corr
 
 def circmean(alpha,axis=None):
@@ -420,41 +405,19 @@ def circmean(alpha,axis=None):
     return mean_angle
 
 
-def circdiff(alpha,beta,axis=None):
-    #To convert from radians to degrees, multiply by (180o/(PI))
-    tod = 180/np.pi
-    tor = np.pi/180
-
-    sa = np.sin(alpha*tor)
-    ca  = np.cos(alpha*tor)
-    
-    sb = np.sin(beta*tor)
-    cb  = np.cos(beta*tor)
-    
-    sd = sa-sb
-    cd = ca-cb
-    
-    mean_diff = np.arctan2(sd,cd)*tod
-    #mean_diff = np.where(mean_diff<0,mean_diff+360,mean_diff)
-    return mean_diff
-
-
-
-
 def plot_pdf(l1,l2,outname):
     
     fig = plt.figure(figsize=(8,8), facecolor='w')
     ax = plt.subplot(1,1,1)
     
-    
     #plot a PDF
-    bl = np.arange(.02,.41,.01)
+    bl = np.arange(0.,.41,.01)
     #n, bins, patches = plt.hist(slist, bl, normed=True, histtype='step', color='m', alpha=.8, label='neXtSIM', lw = 3)
     #n, bins, patches = plt.hist(slist_gauss, bl, normed=True, histtype='step', color='r', alpha=.8, label='neXtSIM', lw = 3)
     n, bins, patches = plt.hist(np.clip(l1, bl[0], bl[-1]), bl, normed=True, histtype='step', color='darkred', alpha=.8, label='neXtSIM', lw = 3)
     n, bins, patches = plt.hist(np.clip(l2, bl[0], bl[-1]), bl, normed=True, histtype='step', alpha=.8, label='OSI-SAF', lw = 3)
 
-
+    plt.xlim(0,20)
     plt.xlabel('Speed (m/s)')
     plt.ylabel('Probability')
     plt.title('Probability distribution of mean 2-day speed \nfor January 2007-2015')
@@ -463,7 +426,7 @@ def plot_pdf(l1,l2,outname):
     plt.legend(loc='upper right',prop={'size':16})
     plt.grid(True)
     plt.savefig(outname)
-
+    plt.close()
     
 
 

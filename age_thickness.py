@@ -15,9 +15,10 @@ from age_func import *
 
 
 inpath_is = 'data/icesat/'
-inpath_cs = '/input_obs_data/data/CS2_SMOS_v2.0/'
+inpath_cs = 'data/CS2_SMOS_v2.0/'
 #inpath = '/input_obs_data/polona/FRASIL/age_datamor_long/'
-inpath = 'data/'
+#inpath = 'data/'
+inpath = '/input_obs_data/einar/datarmor/age_95_noice/'
 outpath = 'data/'
 outpath_plots = 'plots/new/'
 
@@ -38,6 +39,7 @@ mask_is = np.where(sit<0,0,1)
 
 #mask out the region with thick/immobile/old ice at the end of the run
 fn = inpath+'Moorings.nc.~7~'
+fn = inpath+'Moorings_1995.nc'
 f = Dataset(fn)
 lons = f.variables['longitude'][:]
 lats = f.variables['latitude'][:]
@@ -97,30 +99,30 @@ for fn in fl:
     dates_is.append(date)
     thick_is.append(msit)
 
-#print(dates_is)
-#print(thick_is)
+print(dates_is)
+print(thick_is)
+#exit()
+
+##read the CS-2 sea ice thickness
+fl = sorted(glob(inpath_cs+'awi-cs2smos-l4-sithick-cryosat2_smos_merged-rep-nh25km_ease2-*.nc'))
+
+f = Dataset(fl[0])
+lonc = f.variables['lon'][:]
+latc = f.variables['lat'][:]
+#sit = f.variables['cs2_ice_thickness'][:]
+#mask_cs = np.where(sit>0,1,0)
+
+orig_def_cs = pyresample.geometry.SwathDefinition(lons=lonc, lats=latc)
+#mask_cs = pyresample.kd_tree.resample_nearest(orig_def_cs, mask_cs, \
+            #targ_def, radius_of_influence=30000)
+
+#mask_comb_cs = mask_cs * mask_m
+
+###Plot mask
+##outpath_plots = 'plots/run04/'
+##outname = outpath_plots+'age_mask_comb_cs.png'
+##plot_pcolormesh(lons,lats,mask_comb_cs,outname,cmap='viridis',label='Central Arctic Mask=1')
 ##exit()
-
-###read the CS-2 sea ice thickness
-#fl = sorted(glob(inpath_cs+'awi-cs2smos-l4-sithick-cryosat2_smos_merged-rep-nh25km_ease2-*.nc'))
-
-#f = Dataset(fl[0])
-#lonc = f.variables['lon'][:]
-#latc = f.variables['lat'][:]
-##sit = f.variables['cs2_ice_thickness'][:]
-##mask_cs = np.where(sit>0,1,0)
-
-#orig_def_cs = pyresample.geometry.SwathDefinition(lons=lonc, lats=latc)
-##mask_cs = pyresample.kd_tree.resample_nearest(orig_def_cs, mask_cs, \
-            ##targ_def, radius_of_influence=30000)
-
-##mask_comb_cs = mask_cs * mask_m
-
-####Plot mask
-###outpath_plots = 'plots/run04/'
-###outname = outpath_plots+'age_mask_comb_cs.png'
-###plot_pcolormesh(lons,lats,mask_comb_cs,outname,cmap='viridis',label='Central Arctic Mask=1')
-###exit()
 
 #dates_cs = []
 #thick_cs =[]
@@ -166,6 +168,7 @@ for fn in fl:
 #thick_m = []
 
 #fl = sorted(glob(inpath+'Moorings.nc.~*'))
+#fl = sorted(glob(inpath+'Moorings*.nc'))
 #print(fl)
 #for fn in fl:
     #print(fn)
@@ -190,18 +193,20 @@ for fn in fl:
     #dates_m.extend(dt)
 
 ##save data
-#outfile = outpath+'thickness_ts_dra' 
+#outfile = outpath+'thickness_ts_dra'
+#outfile = outpath+'thickness_ts_dra_95_noice'
 #np.savez(outfile, dt = np.array(dates_m), vm = np.array(thick_m) )
 
 #outfile = outpath+'thickness_ts_cs_dra' 
 #np.savez(outfile, dt = np.array(dates_cs), vm = np.array(thick_cs), uc = np.array(unc_cs) )
 
 #load data
-container = np.load(outpath+'thickness_ts.npz')
+#container = np.load(outpath+'thickness_ts.npz')
+container = np.load(outpath+'thickness_ts_dra_95_noice.npz')
 dates_m = container['dt']
 thick_m = container['vm']
 
-container = np.load(outpath+'thickness_ts_cs.npz')
+container = np.load(outpath+'thickness_ts_cs_dra.npz')
 dates_cs = container['dt']
 thick_cs = container['vm']
 unc_cs = container['uc']
@@ -248,8 +253,8 @@ print(dfmon.loc[dfmon.index.month==3])
 fig, axes = plt.subplots(nrows=2, ncols=1,figsize=(8,8))
 
 #dfmon.plot(title='Ice Thickness',lw=3,yerr=dfmon2_std)
-ax = dfmon.iloc[:,:-1].loc[dfmon.index.month==11].plot(ax=axes[0],lw=3,yerr=dfmon2_std,ylim=[0,2.5])
-bx = dfmon.iloc[:,:-1].loc[dfmon.index.month==3].plot(ax=axes[1],lw=3,yerr=dfmon2_std,ylim=[0,3.])
+ax = dfmon.iloc[:,:-1].loc[dfmon.index.month==11].plot(ax=axes[0],lw=3,yerr=dfmon2_std)#,ylim=[0,2.5])
+bx = dfmon.iloc[:,:-1].loc[dfmon.index.month==3].plot(ax=axes[1],lw=3,yerr=dfmon2_std)#,ylim=[0,3.])
 
 
 #November uncertany
@@ -264,7 +269,8 @@ bx.fill_between(mar.index, mar['CS-2'] - mar['CS-2 unc'], mar['CS-2'] + mar['CS-
 
 ax.set_ylabel(r'November mean Thickness (m)')
 bx.set_ylabel(r'March mean Thickness (m)')
-plt.savefig(outpath_plots+'thickness_ts.png')
+#plt.savefig(outpath_plots+'thickness_ts.png')
+plt.savefig(outpath_plots+'thickness_ts_95_noice.png')
 
 
 #plot with uncertanty

@@ -14,6 +14,7 @@ inpath = '/input_obs_data/polona/FRASIL/age_datamor_long/'
 outpath = 'data/outputs/'
 icosi_path = '/input_obs_data/data/OSISAF_ice_conc/polstere/'
 tyosi_path = '/input_obs_data/data/OSISAF_ice_type/'
+nsidc_path = 'data/nsidc/'
 cfsr_path = '/input_obs_data/data/CFSR/'
 outpath_plots = 'plots/new/'
 
@@ -42,6 +43,13 @@ myi_osi_cumul = f.variables['myi_freq'][:]
 lat_osi = f.variables['lat'][:]
 lon_osi = f.variables['lon'][:]
 
+#NSIDC grid
+fn = nsidc_path+'iceage_nh_12.5km_1995.nc'
+f = Dataset(fn)
+lone = f.variables['longitude'][:]
+late = f.variables['latitude'][:]
+
+#nextsim
 #get all daily files
 fl = sorted(glob(inpath+'field*0415T000000Z.bin'))
 
@@ -194,10 +202,29 @@ for f in fl:
     #smoothen and regrid the data for nicer contours
     myi_osi_smooth = regrid_data(myi_osi,lon_osi,lat_osi,lon_gm,lat_gm)
     
+    ##checking
+    #outname = outpath_plots+'osi_test.png'
+    #plot_pcolormesh(lon_osi,lat_osi,myi_osi_cumul,outname,cmap='viridis',label='MYI frequency')
+    #exit()    
+    
+    #NSIDC data
+    netcdf_name = 'iceage_nh_12.5km_'+tmp+'.nc'
+    fnsidc = nsidc_path+netcdf_name
+    f = Dataset(fosi_cumul)
+    nsidc = f.variables['age_of_sea_ice'][:,:,:]
+    #pick 2nd week of April and convert to MYI
+    wn = int(106/7)                    
+    mask = (aosi[wn,:,:]>1) & (aosi[wn,:,:]<20)   #value 20 is for the landmask                   
+    myi_nsidc = np.where(mask,1,0)
+    
+    #smoothen and regrid the data for nicer contours
+    myi_nsidc_smooth = regrid_data(myi_nsidc,lone,late,lon_gm,lat_gm)
+    
     #checking
-    outname = outpath_plots+'osi_test.png'
-    plot_pcolormesh(lon_osi,lat_osi,myi_osi_cumul,outname,cmap='viridis',label='MYI frequency')
-    exit()    
+    outname = outpath_plots+'nsidc_test.png'
+    plot_pcolormesh(lone,late,myi_nsidc,outname,cmap='viridis',label='MYI')
+    exit()
+    
     
     
     #####PLOTTING MAPS*********************************************************************************************************************************

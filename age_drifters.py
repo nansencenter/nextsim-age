@@ -12,16 +12,19 @@ from age_func import *
 
 #compare April daily means
 
-inpath='/input_obs_data/polona/FRASIL/age_datamor_long/'
+#inpath='/input_obs_data/polona/FRASIL/age_datamor_long/'
+#inpath='/input_obs_data/einar/datarmor/age_95_noice/'
 inpath='data/drifters/'
 outpath = 'data/outputs/'
 outpath_plots = 'plots/new/'
 
 icosi_path = '/input_obs_data/data/OSISAF_ice_conc/polstere/'
-drosi_path = '/input_obs_data/data/OSISAF_ice_drift/'
+drosi_path = '/input_obs_data/data/OSISAF_ice_drift/'                   #product_version = "1.3"
+drosi_path = '/input_obs_data/polona/old_OSISAF_ice_drift/'             #product_version = "1.3"
 
 #get OSI-SAF grid
 fn = drosi_path+'2007/01/ice-drift_ice_drift_nh_polstere-625_multi-oi_200701011200-200701031200.nc'
+fn = drosi_path+'ice-drift_ice_drift_nh_polstere-625_multi-oi_200701011200-200701031200.nc'
 f = Dataset(fn)
 lat_osi = f.variables['lat'][:]
 lon_osi = f.variables['lon'][:]
@@ -33,8 +36,8 @@ sf = f.variables['status_flag'][:]
 sl_all = []
 slo_all = []
 
-#for every year (2011-) collect all winter data (November-April)
-years = range(2011,2016)
+#for every year (200-) collect all winter data (November-April)
+years = range(2007,2016)
 for yr in years:
     print(yr)
     d = 0                                                   #reset day-counter
@@ -112,18 +115,27 @@ for yr in years:
         #exit()
 
         #make corresponding OSI-SAF maps
-        #OSI-SAF data
-        try: netcdf_name = glob(drosi_path+year+'/'+mon+'/ice_drift_nh_polstere-625_multi-oi_'+year+mon+day+'*.nc')[0]
+        ##OSI-SAF data
+        #try: netcdf_name = glob(drosi_path+year+'/'+mon+'/*ice_drift_nh_polstere-625_multi-oi_'+year+mon+day+'*.nc')[0]
+        #except:
+            ##the last days of the month are already in the next month folder
+            #mon1 = (dt + timedelta(weeks=4)).strftime("%m")
+            #year1 = year
+            #if int(mon)==12: year1=str(int(year)+1); mon1='01'
+            #try: netcdf_name = glob(drosi_path+year1+'/'+mon1+'/*ice_drift_nh_polstere-625_multi-oi_'+year+mon+day+'*.nc')[0]
+            #except:
+                ##some files are simply missing, those should days should not be analysed
+                #d = d+1
+                #continue
+            
+        #with the older OSI-SAF data repository all files are in the same folder and this is more simple
+        try: netcdf_name = glob(drosi_path+'/*ice_drift_nh_polstere-625_multi-oi_'+year+mon+day+'*.nc')[0]
         except:
-            #the last days of the month are already in the next month folder
-            mon1 = (dt + timedelta(weeks=4)).strftime("%m")
-            year1 = year
-            if int(mon)==12: year1=str(int(year)+1); mon1='01'
-            try: netcdf_name = glob(drosi_path+year1+'/'+mon1+'/ice_drift_nh_polstere-625_multi-oi_'+year+mon+day+'*.nc')[0]
-            except:
                 #some files are simply missing, those should days should not be analysed
                 d = d+1
                 continue
+        
+        
         print(netcdf_name)
         
         f = Dataset(netcdf_name) 
@@ -218,10 +230,10 @@ for yr in years:
     
     #make correlation maps (for speed and direction) for each winter
     outname = outpath_plots+'drifters_corr_speed_'+str(yr)+'.png'
-    plot_pcolormesh(lon_osi,lat_osi,scorr,outname,vmin=0,vmax=1,cmap='Reds',label='correlation')
+    plot_pcolormesh(lon_osi,lat_osi,scorr,outname,vmin=0,vmax=1,cmap='bwr',label='correlation')
 
     outname = outpath_plots+'drifters_corr_angle_'+str(yr)+'.png'
-    plot_pcolormesh(lon_osi,lat_osi,acorr,outname,vmin=-1,vmax=1,cmap='bwr',label='correlation')
+    plot_pcolormesh(lon_osi,lat_osi,acorr,outname,vmin=0,vmax=1,cmap='bwr',label='correlation')
 
     #and angle differences
     #import matplotlib.colors

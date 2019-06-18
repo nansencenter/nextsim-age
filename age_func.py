@@ -61,12 +61,12 @@ def plot_contour(lons,lats,data,levels=[.15],colors=['purple'],lw=[1.],labels=['
         cs = plt.contour(lons,lats,data[i],levels=[levels[i]], colors=colors[i], linewidths=lw[i], transform=ccrs.PlateCarree())
         cs.collections[0].set_label(labels[i])
         
-    ax1.legend(loc='upper left')
+    ax1.legend(loc='upper right')
     
     plt.savefig(outname,bbox_inches='tight')
     plt.close()
     
-def plot_contour_bg(lons,lats,bg,data,levels=[.15],colors=['purple'],lw=[1.],labels=['Variable'],bg_label='Snow_depth',outname='test.png',vmin=0,vmax=1):
+def plot_contour_bg(lons,lats,bg,data,levels=[.15],colors=['purple'],lw=[1.],ls=['-'],labels=['Variable'],bg_label='Snow_depth',outname='test.png',vmin=0,vmax=1,cmap='jet',cbar=True):
     # create the figure panel 
     fig = plt.figure(figsize=(10,10), facecolor='w')
 
@@ -82,20 +82,31 @@ def plot_contour_bg(lons,lats,bg,data,levels=[.15],colors=['purple'],lw=[1.],lab
     ax1.add_feature(cartopy.feature.LAND, zorder=1,facecolor=cartopy.feature.COLORS['land_alt1'])
 
     #plot 'background'
-    pp = plt.pcolormesh(lons,lats,bg,vmin=vmin,vmax=vmax, cmap='jet', transform=ccrs.PlateCarree())
+    pp = plt.pcolormesh(lons,lats,bg,vmin=vmin,vmax=vmax, cmap=cmap, transform=ccrs.PlateCarree())
     # add the colourbar to the bottom of the plot.
     
     # plot sea ice field
+    handle_list = []
     for i in range(len(levels)):   
         cs = plt.contour(lons,lats,data[i],levels=[levels[i]], colors=colors[i], linewidths=lw[i], transform=ccrs.PlateCarree())
         cs.collections[0].set_label(labels[i])
+        handle_list.append(cs.collections[0])
         
-    ax1.legend(loc='upper left')
+    ax1.legend(loc='upper right')
     
-    fig.subplots_adjust(bottom=0.15)
-    cbar_ax = fig.add_axes([0.2, 0.1, 0.625, 0.033])
-    cbar = plt.colorbar(pp, cax=cbar_ax, orientation='horizontal', ticks=np.arange(0,1.1,0.1))
-    cbar.set_label(label=bg_label,size=14, family='serif')
+    if cbar:
+        fig.subplots_adjust(bottom=0.15)
+        cbar_ax = fig.add_axes([0.2, 0.1, 0.625, 0.033])
+        cbar = plt.colorbar(pp, cax=cbar_ax, orientation='horizontal', ticks=np.arange(0,1.1,0.1))
+        cbar.set_label(label=bg_label,size=14, family='serif')
+    else:
+        import matplotlib.patches as mpatches
+
+        red_patch = mpatches.Patch(color='darkred', label=bg_label)
+        handle_list.append(red_patch)
+        
+        ax1.legend(handles=handle_list, loc='upper right')
+        
 
     plt.savefig(outname,bbox_inches='tight')
     plt.close()
@@ -138,7 +149,7 @@ def plot_quiver(x,y,u,v,outname,vmin=0,vmax=1,cmap='jet',label='Variable', scale
 
 def smooth_data(data,lon,lat,coarse_lon,coarse_lat):    
     #smoothen the data for nicer contours with a lowpass filter
-    data = ndimage.gaussian_filter(data, 3)    #sigma
+    #data = ndimage.gaussian_filter(data, 3)    #sigma
     
     
     #regrid to equally spaced grid in latlon - otherwise there will be problems with cyclic point in contour plots

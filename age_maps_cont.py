@@ -117,15 +117,27 @@ for f in fl:
     print(diff)
     age = age/60/60/24/356
     myi_age = np.ma.array(age,mask=age<diff)
-    #Plot myi_age
-    outname = outpath_plots+'nextsim_myi_age_test.png'
-    #outname = outpath_plots+'nextsim_myi_age_v_test.png'
-    plot_pcolormesh(lon,lat,age,outname,vmin=0,vmax=5,cmap='viridis',label='MYI')
-    exit()
+    ##Plot myi_age
+    #outname = outpath_plots+'nextsim_myi_age_test.png'
+    ##outname = outpath_plots+'nextsim_myi_age_v_test.png'
+    #plot_pcolormesh(lon,lat,age,outname,vmin=0,vmax=5,cmap='viridis',label='MYI')
+    #exit()
     
     #smoothen and regrid the data for nicer contours
-    tmp = smooth_data(myi,lon,lat,lon_osi,lat_osi)
+    #smoothen the data for nicer contours with a lowpass filter
+    tmp = ndimage.gaussian_filter(myi, 3)    #sigma
+    tmp = smooth_data(tmp,lon,lat,lon_osi,lat_osi)
+    tmp = ndimage.gaussian_filter(tmp, 3)
     myi_smooth = smooth_data(tmp,lon_osi,lat_osi,lon_gm,lat_gm)
+    
+    
+    
+    #tmp = ndimage.gaussian_filter(myi, 3)    #sigma
+    #myi_smooth = smooth_data(tmp,lon,lat,lon_gm,lat_gm)
+    #myi_smooth = ndimage.gaussian_filter(myi_smooth, 3)
+    
+    
+    
     
     myi_age_smooth = regrid_data(myi_age,lon,lat,lon_gm,lat_gm)
     myi_age_smooth = np.where(myi_age_smooth>.5,1,-1)
@@ -137,7 +149,7 @@ for f in fl:
     #mask the areas by age_mask and save for the time series
     #regrid all data to a regulary spaced grid (OSI-SAF)
     age_mask_osi = regrid_data(age_mask,lons,lats,lon_osi,lat_osi)
-    nph = lat_osi > 88. #NP hole
+    nph = lat_osi > 87.5 #NP hole
     mask = (age_mask_osi<1) | nph
     
     tmp = np.where(myi_smooth>.1,1,0)
@@ -145,8 +157,8 @@ for f in fl:
     myi_type_area = np.sum(np.ma.array(tmp, mask=mask)*100) #in km^2 (OSI-SAF ice type is on a 10-km regular grid)
     
     tmp = np.where(age>diff,1,0)
-    tmp = regrid_data(tmp,lon,lat,lon_osi,lat_osi)
-    myi_age_area = np.sum(np.ma.array(tmp, mask=mask)*100)
+    keep = regrid_data(tmp,lon,lat,lon_osi,lat_osi)
+    myi_age_area = np.sum(np.ma.array(keep, mask=mask)*100)
     
     #calculate mean sea ice thickness, snow depth and ridge ratio for FYI and MYI
     #all data needs to be regridded to a regular grid
@@ -156,8 +168,8 @@ for f in fl:
     snow_osi = regrid_data(snow,lon,lat,lon_osi,lat_osi)
     rr_osi = regrid_data(rr,lon,lat,lon_osi,lat_osi)
     
-    myi_mask = (tmp==0)|(sit_osi==0)|(age_mask_osi<1)
-    fyi_mask = (tmp==1)|(fyi_osi==0)|(age_mask_osi<1)
+    myi_mask = (keep==0)|(sit_osi==0)|(age_mask_osi<1)
+    fyi_mask = (keep==1)|(fyi_osi==0)|(age_mask_osi<1)
     
     myi_msit = np.mean(np.ma.array(sit_osi,mask=myi_mask))
     fyi_msit = np.mean(np.ma.array(sit_osi,mask=fyi_mask))
@@ -190,6 +202,28 @@ for f in fl:
     if int(year)<2005: 
         myi_osi_list.append(dv); ridge_bias.append(dv); snow_bias.append(dv); warm_bias.append(dv)
         continue
+
+    #NSIDC data
+    netcdf_name = 'iceage_nh_12.5km_'+year+'.nc'
+    fnsidc = nsidc_path+netcdf_name
+    f = Dataset(fnsidc)
+    aosi = f.variables['age_of_sea_ice'][:,:,:]
+    #pick 2nd week of April and convert to MYI
+    wn = int(106/7)                    
+    mask_nsidc = (aosi[wn,:,:]>1) & (aosi[wn,:,:]<20)   #value 20 is for the landmask                   
+    myi_nsidc = np.where(mask_nsidc,1,0)
+    
+    #smoothen and regrid the data for nicer contours
+    myi_nsidc_smooth = smooth_data(myi_nsidc,lone,late,lon_gm,lat_gm)
+    nsidc_nph = smooth_data(myi_nsidc,lone,late,lon_osi,lat_osi)
+    
+    ##checking
+    #outname = outpath_plots+'nsidc_test.png'
+    #plot_pcolormesh(lone,late,myi_nsidc,outname,cmap='viridis',label='MYI')
+    
+    #outname = outpath_plots+'nsidc_test_smooth.png'
+    #plot_pcolormesh(lon_gm,lat_gm,myi_nsidc_smooth ,outname,cmap='viridis',label='MYI')
+    #exit()
     
     #OSI-SAF data
     tmp = year+'04301200'
@@ -199,6 +233,11 @@ for f in fl:
     myi_osi_cumul = f.variables['myi_freq'][0,:,:]  #UNITS day^-1
     myi_osi = np.where(myi_osi_cumul>0.1,1,0)   #grid cell needs to be classified as MYI more than 3 days in a month (with 30 days)!!!
     
+    #fill in the polar hole if NSIDC has MYI at the NP
+    if np.mean(np.ma.array(nsidc_nph,mask=~nph))>.7:
+        print('MYI at the NP')
+        myi_osi = np.where(nph,1,myi_osi)
+    
     #smoothen and regrid the data for nicer contours
     myi_osi_smooth = regrid_data(myi_osi,lon_osi,lat_osi,lon_gm,lat_gm)
     
@@ -207,30 +246,18 @@ for f in fl:
     #plot_pcolormesh(lon_osi,lat_osi,myi_osi_cumul,outname,cmap='viridis',label='MYI frequency')
     #exit()    
     
-    #NSIDC data
-    netcdf_name = 'iceage_nh_12.5km_'+tmp+'.nc'
-    fnsidc = nsidc_path+netcdf_name
-    f = Dataset(fosi_cumul)
-    nsidc = f.variables['age_of_sea_ice'][:,:,:]
-    #pick 2nd week of April and convert to MYI
-    wn = int(106/7)                    
-    mask = (aosi[wn,:,:]>1) & (aosi[wn,:,:]<20)   #value 20 is for the landmask                   
-    myi_nsidc = np.where(mask,1,0)
-    
-    #smoothen and regrid the data for nicer contours
-    myi_nsidc_smooth = regrid_data(myi_nsidc,lone,late,lon_gm,lat_gm)
-    
-    #checking
-    outname = outpath_plots+'nsidc_test.png'
-    plot_pcolormesh(lone,late,myi_nsidc,outname,cmap='viridis',label='MYI')
-    exit()
-    
-    
     
     #####PLOTTING MAPS*********************************************************************************************************************************
+    
+    colors = ['darkred']
+    from matplotlib.colors import ListedColormap
+    cmap = ListedColormap(colors)
+    
     tmp = np.where(myi_age_smooth>.5,1,np.nan)
-    plot_contour_bg(lon_g,lat_g,tmp,data=[myi_smooth,myi_osi_smooth],levels=[.1,.1],colors=['red','k'], lw=[3,3], \
-                 labels=['neXtSIM MYI extent','OSI-SAF MYI extent'],bg_label='MYI age',outname=outpath_plots+'it_contour_'+year+'.png')    
+    plot_contour_bg(lon_g,lat_g,tmp,data=[myi_smooth,myi_osi_smooth,myi_nsidc_smooth],levels=[.1,.1,.1],colors=['red','k','b'], lw=[3,3,3], ls=['-','-','-'], \
+                    labels=['neXtSIM MYI extent','OSI-SAF MYI extent','NSIDC MYI extent'],bg_label='neXtSIM MYI age',outname=outpath_plots+'it_contour_'+year+'.png', \
+                    cmap=cmap,cbar=False)    
+    #exit()
     
     #plot neXtSIM ridges/snow as background
     snow_smooth = smooth_data(snow,lon,lat,lon_gm,lat_gm)
@@ -262,7 +289,7 @@ for f in fl:
     
     #checking charasteristicns of the difference areas
     #are there more/less ridges, have more/less snow, more/less warm air intrusions?
-    nph = lat_gm > 88. #NP hole
+    nph = lat_gm > 87.5 #NP hole
     mask = ((myi_age_smooth>.5) & (myi_osi_smooth<.5) & ~nph) | ((myi_age_smooth<.5) & (myi_osi_smooth>.5) & ~nph) 
     rr_diff = np.mean(rr_smooth[mask])
     snow_diff = np.mean(snow_smooth[mask])
